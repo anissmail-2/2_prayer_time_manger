@@ -40,10 +40,17 @@ class NotificationService {
         requestSoundPermission: true,
       );
 
+      // Linux initialization settings
+      const LinuxInitializationSettings linuxSettings =
+          LinuxInitializationSettings(
+        defaultActionName: 'Open notification',
+      );
+
       // Combined initialization settings
       const InitializationSettings initSettings = InitializationSettings(
         android: androidSettings,
         iOS: iosSettings,
+        linux: linuxSettings,
       );
 
       // Initialize plugin
