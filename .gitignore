@@ -53,6 +53,15 @@ android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 firebase_options.dart
 
+# Android release signing - CRITICAL SECURITY
+*.jks
+*.keystore
+key.properties
+android/key.properties
+android/app/key.properties
+android/app/upload-keystore.jks
+android/app/release-keystore.jks
+
 # Output and log files
 *.txt
 *.log
