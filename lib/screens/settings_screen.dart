@@ -6,11 +6,14 @@ import '../core/services/firebase_service.dart';
 import '../core/services/data_sync_service.dart';
 import '../core/services/user_preferences_service.dart';
 import '../core/services/theme_service.dart';
+import '../core/services/feedback_service.dart';
 import '../main.dart';
 import 'prayer_settings_screen.dart';
 import 'location_settings_screen.dart';
 import 'notification_settings_screen.dart';
 import 'auth_screen.dart';
+import 'feedback/feedback_form_screen.dart';
+import 'feedback/bug_report_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -429,7 +432,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             const SizedBox(height: AppTheme.space16),
           ],
-          
+
+          // Beta Feedback (only show in debug/beta mode)
+          if (FeedbackService.isBetaMode) ...[
+            _buildSectionHeader('Beta Testing'),
+            _buildSettingsTile(
+              icon: Icons.feedback_outlined,
+              title: 'Send Feedback',
+              subtitle: 'Share your thoughts and suggestions',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FeedbackFormScreen()),
+                );
+              },
+            ),
+            _buildSettingsTile(
+              icon: Icons.bug_report_outlined,
+              title: 'Report a Bug',
+              subtitle: 'Help us fix issues you encounter',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const BugReportScreen()),
+                );
+              },
+              color: AppTheme.warning,
+            ),
+            const SizedBox(height: AppTheme.space16),
+          ],
+
           // App Info
           _buildSectionHeader('About'),
           _buildSettingsTile(

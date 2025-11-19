@@ -15,6 +15,7 @@ import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/data_migration_service.dart';
 import '../core/services/user_preferences_service.dart';
+import '../widgets/beta_banner.dart';
 
 class MainLayout extends StatefulWidget {
   const MainLayout({super.key});
@@ -186,19 +187,21 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       drawer: showDrawer ? _buildMobileDrawer() : null,
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (!showDrawer) _buildSidebar(),
-            Expanded(
-              child: Column(
-                children: [
-                  _buildTopBar(showDrawer),
-                  Expanded(child: _buildContent()),
-                ],
+      body: BetaBanner(
+        child: SafeArea(
+          child: Row(
+            children: [
+              if (!showDrawer) _buildSidebar(),
+              Expanded(
+                child: Column(
+                  children: [
+                    _buildTopBar(showDrawer),
+                    Expanded(child: _buildContent()),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
