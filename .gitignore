@@ -1,0 +1,121 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code related
+.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Environment variables and API keys - CRITICAL SECURITY
+.env
+.env.local
+.env.*.local
+lib/core/config/app_config.local.dart
+
+# Firebase configuration files (contain API keys)
+google-services.json
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+firebase_options.dart
+
+# Output and log files
+*.txt
+*.log
+analysis_report.txt
+analyze_output.txt
+test_results.txt
+flutter_doctor.txt
+pub_outdated.txt
+
+# Test files in wrong location (should be in /test/)
+test_*.dart
+!test/**/*.dart
+
+# Images and media in root
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!web/icons/*.png
+!web/icons/*.jpg
+!android/app/src/main/res/**/*.png
+!ios/Runner/Assets.xcassets/**/*.png
+
+# Firebase cache
+.firebase/
+
+# Platform specific
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+# iOS specific
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+ios/Flutter/app.flx
+ios/Flutter/app.zip
+ios/Flutter/flutter_assets/
+ios/Flutter/flutter_export_environment.sh
+ios/Runner/GeneratedPluginRegistrant.*
+ios/ServiceDefinitions.json
+ios/Runner.xcworkspace/xcshareddata/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Coverage
+coverage/
+
+# GitHub workflows (requires manual addition due to GitHub App permissions)
+.github/workflows/
+
+# Exceptions to above rules
+!.vscode/launch.json
+!.vscode/extensions.json
