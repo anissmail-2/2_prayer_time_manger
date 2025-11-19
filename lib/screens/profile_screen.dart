@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'dart:io';
 import '../core/services/auth_service.dart';
+import '../core/services/data_export_service.dart';
 import '../core/helpers/analytics_helper.dart';
+import '../core/helpers/logger.dart';
 import '../core/theme/app_theme.dart';
+import 'notification_settings_screen.dart';
+import 'edit_profile_screen.dart';
+import 'change_password_screen.dart';
+import 'language_settings_screen.dart';
+import 'sync_settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -15,6 +24,199 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     AnalyticsHelper.logScreenView('profile');
+  }
+
+  Future<void> _handleExportData() async {
+    try {
+      await DataExportService.exportToFile();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Data exported successfully!'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+      }
+      AnalyticsHelper.logEvent('data_exported');
+    } catch (e, stackTrace) {
+      Logger.error(
+        'Failed to export data',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'Profile',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to export data: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleImportData() async {
+    try {
+      // Pick a JSON file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return; // User canceled
+      }
+
+      final filePath = result.files.single.path;
+      if (filePath == null) {
+        throw 'Failed to access file';
+      }
+
+      // Read file content
+      final file = File(filePath);
+      final jsonString = await file.readAsString();
+
+      // Show confirmation dialog
+      if (mounted) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Import Data'),
+            content: const Text(
+              'This will import data from the backup file. '
+              'Existing data with the same IDs will be overwritten. '
+              'Continue?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                ),
+                child: const Text('Import'),
+              ),
+            ],
+          ),
+        );
+
+        if (confirmed != true) {
+          return;
+        }
+      }
+
+      // Import data
+      final importResult = await DataExportService.importData(jsonString);
+
+      if (mounted) {
+        // Show result dialog
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Row(
+              children: [
+                Icon(
+                  importResult.hasErrors ? Icons.warning : Icons.check_circle,
+                  color: importResult.hasErrors ? AppTheme.warning : AppTheme.success,
+                ),
+                const SizedBox(width: 8),
+                const Text('Import Complete'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('✓ ${importResult.tasksImported} tasks imported'),
+                Text('✓ ${importResult.spacesImported} spaces imported'),
+                Text('✓ ${importResult.activitiesImported} activities imported'),
+                if (importResult.hasErrors) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    'Errors:',
+                    style: AppTheme.labelMedium.copyWith(
+                      color: AppTheme.error,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...importResult.errors.map((error) => Text(
+                        '• $error',
+                        style: AppTheme.bodySmall.copyWith(color: AppTheme.error),
+                      )),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+
+        AnalyticsHelper.logEvent('data_imported');
+      }
+    } catch (e, stackTrace) {
+      Logger.error(
+        'Failed to import data',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'Profile',
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to import data: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showDataExportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Data Management'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.upload_file, color: AppTheme.primary),
+              title: const Text('Export Data'),
+              subtitle: const Text('Save your data to a file'),
+              onTap: () {
+                Navigator.pop(context);
+                _handleExportData();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.download, color: AppTheme.primary),
+              title: const Text('Import Data'),
+              subtitle: const Text('Restore data from a backup'),
+              onTap: () {
+                Navigator.pop(context);
+                _handleImportData();
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -117,10 +319,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             icon: Icons.person_outline,
             title: 'Edit Profile',
             subtitle: 'Update your name and photo',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Edit profile coming soon!')),
+            onTap: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const EditProfileScreen(),
+                ),
               );
+              // Refresh if profile was updated
+              if (result == true && mounted) {
+                setState(() {});
+              }
             },
           ),
           _buildSettingCard(
@@ -134,8 +343,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Change Password',
             subtitle: 'Update your password',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Change password coming soon!')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ChangePasswordScreen(),
+                ),
               );
             },
           ),
@@ -149,8 +361,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Language',
             subtitle: 'English (US)',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Language settings coming soon!')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const LanguageSettingsScreen(),
+                ),
               );
             },
           ),
@@ -159,8 +374,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Notifications',
             subtitle: 'Manage notification preferences',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Notification settings coming soon!')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const NotificationSettingsScreen(),
+                ),
               );
             },
           ),
@@ -174,19 +392,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             title: 'Sync Settings',
             subtitle: 'Manage cloud synchronization',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Sync settings coming soon!')),
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SyncSettingsScreen(),
+                ),
               );
             },
           ),
           _buildSettingCard(
             icon: Icons.download_outlined,
-            title: 'Export Data',
-            subtitle: 'Download your data',
+            title: 'Export/Import Data',
+            subtitle: 'Backup or restore your data',
             onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Data export coming soon!')),
-              );
+              _showDataExportDialog();
             },
           ),
           _buildSettingCard(
@@ -325,13 +544,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _handleDeleteAccount() async {
+    try {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Deleting account...'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Clear all app data
+      await DataExportService.clearAllData();
+
+      // Delete Firebase auth account if signed in
+      if (AuthService.isLoggedIn) {
+        try {
+          await AuthService.deleteAccount();
+        } catch (e) {
+          Logger.warning(
+            'Failed to delete Firebase account, but local data was cleared: $e',
+            tag: 'Profile',
+          );
+        }
+      }
+
+      Logger.success('Account and all data deleted', tag: 'Profile');
+      AnalyticsHelper.logEvent('account_deleted');
+
+      if (mounted) {
+        // Close loading dialog
+        Navigator.pop(context);
+
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Account and all data have been deleted'),
+            backgroundColor: AppTheme.success,
+          ),
+        );
+
+        // Go back to previous screen
+        Navigator.pop(context);
+      }
+    } catch (e, stackTrace) {
+      Logger.error(
+        'Failed to delete account',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'Profile',
+      );
+
+      if (mounted) {
+        // Close loading dialog if it's showing
+        Navigator.pop(context);
+
+        String errorMessage = 'Failed to delete account';
+        if (e.toString().contains('requires-recent-login')) {
+          errorMessage =
+              'Please sign in again to delete your account. Your local data has been cleared.';
+          // Clear local data anyway
+          await DataExportService.clearAllData();
+        }
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: AppTheme.error,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _showDeleteAccountDialog() async {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Account'),
-        content: const Text(
-          'This action cannot be undone. All your data will be permanently deleted.',
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This action cannot be undone. All your data will be permanently deleted:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+            const Text('• All tasks and activities'),
+            const Text('• All spaces and projects'),
+            const Text('• All settings and preferences'),
+            const Text('• Your account (if signed in)'),
+            const SizedBox(height: 12),
+            const Text('Are you sure you want to continue?'),
+          ],
         ),
         actions: [
           TextButton(
@@ -339,16 +659,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Account deletion coming soon!'),
-                ),
-              );
+              await _handleDeleteAccount();
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.error),
-            child: const Text('Delete'),
+            child: const Text('Delete Everything'),
           ),
         ],
       ),

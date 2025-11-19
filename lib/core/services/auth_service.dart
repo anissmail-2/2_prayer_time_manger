@@ -145,6 +145,32 @@ class AuthService {
     }
   }
 
+  // Change password
+  static Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    if (_auth == null) throw 'Authentication not available';
+
+    final user = currentUser;
+    if (user == null) throw 'No user logged in';
+    if (user.email == null) throw 'Email not available';
+
+    try {
+      // Re-authenticate user with current password
+      final credential = EmailAuthProvider.credential(
+        email: user.email!,
+        password: currentPassword,
+      );
+      await user.reauthenticateWithCredential(credential);
+
+      // Update password
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    }
+  }
+
   // Delete account
   static Future<void> deleteAccount() async {
     final user = currentUser;

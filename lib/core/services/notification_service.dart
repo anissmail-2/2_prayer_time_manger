@@ -113,7 +113,52 @@ class NotificationService {
       parameters: {'payload': response.payload ?? 'none'},
     );
 
-    // TODO: Navigate to relevant screen based on payload
+    // Parse payload and navigate
+    final payload = response.payload;
+    if (payload == null || payload.isEmpty) return;
+
+    try {
+      if (payload.startsWith('prayer_')) {
+        // Navigate to Prayer Schedule
+        final prayerName = payload.replaceFirst('prayer_', '');
+        Logger.info('Navigating to prayer schedule: $prayerName', tag: 'Notification');
+        _navigateToPrayerSchedule();
+      } else if (payload.startsWith('task_')) {
+        // Navigate to specific task
+        final taskId = payload.replaceFirst('task_', '');
+        Logger.info('Navigating to task: $taskId', tag: 'Notification');
+        _navigateToTask(taskId);
+      }
+    } catch (e, stackTrace) {
+      Logger.error(
+        'Failed to handle notification navigation',
+        error: e,
+        stackTrace: stackTrace,
+        tag: 'Notification',
+      );
+    }
+  }
+
+  /// Navigate to prayer schedule screen
+  static void _navigateToPrayerSchedule() {
+    // This will be handled by the MainLayout navigateTo method
+    // Store the navigation intent for the app to handle on next launch
+    _lastNotificationPayload = 'prayer';
+  }
+
+  /// Navigate to specific task
+  static void _navigateToTask(String taskId) {
+    // Store the task ID for navigation
+    _lastNotificationPayload = 'task_$taskId';
+  }
+
+  static String? _lastNotificationPayload;
+
+  /// Get and clear the last notification payload
+  static String? getAndClearLastPayload() {
+    final payload = _lastNotificationPayload;
+    _lastNotificationPayload = null;
+    return payload;
   }
 
   /// Schedule prayer time notifications for today

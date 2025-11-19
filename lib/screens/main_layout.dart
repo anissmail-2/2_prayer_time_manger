@@ -9,6 +9,8 @@ import 'mobile_spaces_screen.dart';
 import 'settings_screen.dart';
 import 'search_screen.dart';
 import 'profile_screen.dart';
+import 'notifications_center_screen.dart';
+import 'subscription_management_screen.dart';
 import '../core/theme/app_theme.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/data_migration_service.dart';
@@ -260,8 +262,11 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
               child: IconButton(
                 icon: const Icon(Icons.notifications_none),
                 onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Notifications coming soon!')),
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationsCenterScreen(),
+                    ),
                   );
                 },
                 color: AppTheme.textSecondary,
@@ -333,8 +338,11 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                     break;
                   case 'subscription':
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Subscription management coming soon!')),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const SubscriptionManagementScreen(),
+                        ),
                       );
                     }
                     break;
@@ -463,7 +471,12 @@ class MainLayoutState extends State<MainLayout> with SingleTickerProviderStateMi
                   route: 'settings',
                 ),
                 isSelected: false,
-                onTap: () {},
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                  );
+                },
               ),
               const SizedBox(height: 16),
             ],
