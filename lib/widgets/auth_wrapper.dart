@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/firebase_service.dart';
-import '../core/services/user_preferences_service.dart';
+import '../core/services/onboarding_service.dart';
 import '../screens/auth_screen.dart';
 import '../screens/main_layout.dart';
-import '../screens/onboarding_screen.dart';
+import '../screens/onboarding/welcome_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
@@ -14,7 +14,7 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     // Check if onboarding is completed
     return FutureBuilder<bool>(
-      future: UserPreferencesService.isOnboardingCompleted(),
+      future: OnboardingService.hasCompletedOnboarding(),
       builder: (context, onboardingSnapshot) {
         if (onboardingSnapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
@@ -24,7 +24,7 @@ class AuthWrapper extends StatelessWidget {
 
         // Show onboarding for first-time users
         if (onboardingSnapshot.data == false) {
-          return const OnboardingScreen();
+          return const WelcomeScreen();
         }
 
         // Skip authentication on unsupported platforms (like Linux)

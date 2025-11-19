@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'widgets/auth_wrapper.dart';
 import 'core/theme/app_theme.dart';
 import 'core/config/config_loader.dart';
@@ -16,14 +17,66 @@ void main() async {
   // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set up global error handlers
-  _setupErrorHandlers();
+  // Initialize Firebase first (required for Crashlytics)
+  await FirebaseService.initialize();
+
+  // Set up Crashlytics if Firebase is configured
+  if (FirebaseService.isConfigured && FirebaseService.isInitialized) {
+    // Pass all uncaught Flutter framework errors to Crashlytics
+    FlutterError.onError = (FlutterErrorDetails details) {
+      Logger.error(
+        'Flutter error: ${details.exception}',
+        error: details.exception,
+        stackTrace: details.stack,
+        tag: 'App',
+      );
+
+      // Send to Crashlytics
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+
+      // In debug mode, show red screen
+      if (kDebugMode) {
+        FlutterError.presentError(details);
+      }
+    };
+
+    // Pass all uncaught asynchronous errors to Crashlytics
+    PlatformDispatcher.instance.onError = (error, stack) {
+      Logger.error(
+        'Platform error: $error',
+        error: error,
+        stackTrace: stack,
+        tag: 'App',
+      );
+
+      // Send to Crashlytics
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true; // Handled
+    };
+  } else {
+    // Fallback error handlers without Crashlytics
+    _setupErrorHandlers();
+  }
 
   // Run app initialization
   await _initializeApp();
 
-  // Launch app
-  runApp(const TaskFlowPro());
+  // Launch app wrapped in error zone
+  runZonedGuarded(() {
+    runApp(const TaskFlowPro());
+  }, (error, stackTrace) {
+    Logger.error(
+      'Uncaught error in zone',
+      error: error,
+      stackTrace: stackTrace,
+      tag: 'App',
+    );
+
+    // Send to Crashlytics if available
+    if (FirebaseService.isConfigured && FirebaseService.isInitialized) {
+      FirebaseCrashlytics.instance.recordError(error, stackTrace);
+    }
+  });
 }
 
 /// Set up global error handlers for uncaught exceptions
