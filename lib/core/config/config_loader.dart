@@ -1,12 +1,26 @@
 /// Configuration loader that handles local and default configs
-/// 
-/// IMPORTANT: For development, use app_config.local.dart
-/// For production, replace values in app_config.dart
+///
+/// This class provides a unified interface for accessing configuration.
+/// It automatically loads app_config.local.dart in development if available,
+/// otherwise falls back to app_config.dart.
+///
+/// Configuration Priority:
+/// 1. app_config.local.dart (development, git-ignored)
+/// 2. app_config.dart (default/placeholder values)
+///
+/// Usage:
+/// ```dart
+/// final apiKey = ConfigLoader.geminiApiKey;
+/// if (ConfigLoader.hasValidGeminiKey) {
+///   // Initialize AI features
+/// }
+/// ```
 library;
 
 // Import local config if available, otherwise use default
 // ignore_for_file: uri_does_not_exist, unused_import
 import 'app_config.local.dart' if (dart.library.html) 'app_config.dart' as config;
+import '../helpers/logger.dart';
 
 class ConfigLoader {
   // Company domain configuration - easy to change
@@ -35,13 +49,7 @@ class ConfigLoader {
       deepgramApiKey.isNotEmpty;
   
   static void validateConfiguration() {
-    if (!hasValidGeminiKey) {
-      print('⚠️ WARNING: Gemini API key not configured. AI features will not work.');
-      print('Please create lib/core/config/app_config.local.dart with your API keys.');
-    }
-    if (!hasValidDeepgramKey && enableVoiceInput) {
-      print('⚠️ WARNING: Deepgram API key not configured. Voice input will not work.');
-      print('Please create lib/core/config/app_config.local.dart with your API keys.');
-    }
+    // Delegate to AppConfig validation which uses Logger
+    config.AppConfig.validateConfiguration();
   }
 }

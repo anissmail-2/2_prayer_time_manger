@@ -8,12 +8,13 @@ This file provides comprehensive guidance to Claude Code (claude.ai/code) when w
 
 ### Core Identity
 - **Current Name**: TaskFlow Pro
-- **Legacy Name**: prayer_time_manager (still used in namespace)
+- **Legacy Name**: prayer_time_manager (legacy reference only)
 - **Package Name**: `taskflow_pro`
-- **Namespace**: `com.example.prayer_time_manager`
+- **Namespace**: `com.awkati.taskflow`
 - **Flutter SDK**: ^3.8.1
 - **Min SDK**: 24 (Android 7.0)
-- **Target SDK**: 34 (Android 14)
+- **Target SDK**: 36 (Android 14+)
+- **Compile SDK**: 36
 
 ### Key Features
 1. **Prayer-Aware Scheduling**: Schedule tasks relative to prayer times (e.g., "15 minutes before Dhuhr")
@@ -52,20 +53,33 @@ MainLayout (Adaptive Navigation Shell)
 ```
 lib/
 ├── core/
+│   ├── config/
+│   │   ├── app_config.dart             # Configuration constants
+│   │   └── config_loader.dart          # Config loader with fallback
 │   ├── helpers/
+│   │   ├── analytics_helper.dart       # Analytics abstraction
 │   │   ├── connectivity_helper.dart    # Network monitoring
+│   │   ├── logger.dart                 # IMPORTANT: Centralized logging
 │   │   ├── permission_helper.dart      # CRITICAL: Centralized permissions
 │   │   ├── prayer_time_api.dart        # API documentation
 │   │   └── storage_helper.dart         # Offline caching
 │   ├── services/
 │   │   ├── activity_service.dart       # Events/appointments
 │   │   ├── ai_conversation_service.dart # Chat persistence
+│   │   ├── api_config_service.dart     # Runtime API key management
+│   │   ├── auth_service.dart           # Authentication wrapper
+│   │   ├── data_sync_service.dart      # Firestore sync orchestration
 │   │   ├── enhanced_ai_assistant.dart  # Main AI brain
+│   │   ├── firebase_service.dart       # Firebase initialization
+│   │   ├── firestore_space_service.dart # Cloud space storage
+│   │   ├── firestore_todo_service.dart # Cloud task storage
 │   │   ├── gemini_task_assistant.dart  # Task AI suggestions
 │   │   ├── location_service.dart       # Location management
+│   │   ├── notification_service.dart   # Local notifications
 │   │   ├── prayer_duration_service.dart # Prayer blocks
 │   │   ├── prayer_time_service.dart    # Prayer calculations
 │   │   ├── space_service.dart          # Space/project management
+│   │   ├── theme_service.dart          # Theme persistence
 │   │   └── todo_service.dart           # Task CRUD operations
 │   └── theme/
 │       └── app_theme.dart              # UI constants
@@ -97,6 +111,105 @@ lib/
 ```
 
 ## 🔑 Critical Implementation Details
+
+### Logging System (CRITICAL)
+
+#### ⚠️ NEVER use print() - Always use Logger
+
+The app uses a centralized logging framework located at `lib/core/helpers/logger.dart`.
+
+**Available Methods**:
+```dart
+Logger.debug(message, {tag})    // Debug info (debug mode only)
+Logger.info(message, {tag})     // General information
+Logger.warning(message, {tag})  // Warnings
+Logger.error(message, {error, stackTrace, tag})  // Errors
+Logger.success(message, {tag})  // Success messages
+Logger.api(endpoint, {method, statusCode})  // API calls
+Logger.navigation(route, {from})  // Navigation events
+Logger.performance(operation, duration)  // Performance metrics
+Logger.lifecycle(event)  // App lifecycle
+Logger.config(key, isValid)  // Configuration validation
+```
+
+**Usage Pattern**:
+```dart
+// ✅ CORRECT
+try {
+  final result = await someOperation();
+  Logger.success('Operation completed', tag: 'Service');
+} catch (e, stackTrace) {
+  Logger.error('Operation failed', error: e, stackTrace: stackTrace, tag: 'Service');
+}
+
+// ❌ WRONG - NEVER DO THIS
+print('Operation completed');  // FORBIDDEN
+```
+
+**Features**:
+- Auto-disables debug logs in production
+- Includes timestamps
+- Supports tags for filtering
+- Integrates with AnalyticsHelper for error tracking
+- Proper error/stackTrace parameters
+
+### Global Error Handling
+
+The app includes comprehensive error handling configured in `lib/main.dart`:
+
+**Error Handlers**:
+1. **FlutterError.onError** - Catches Flutter framework errors
+2. **PlatformDispatcher.instance.onError** - Catches platform errors
+3. **runZonedGuarded** - Catches async errors
+
+All uncaught exceptions are automatically logged via Logger and sent to analytics/crashlytics when available.
+
+### Firebase Integration (OPTIONAL)
+
+Firebase is **OPTIONAL** and configured via feature flag:
+
+**Configuration**:
+- Feature Flag: `AppConfig.enableFirebaseSync = false` (disabled by default)
+- Status: `FirebaseService.isConfigured` - checks if enabled
+- Initialization: `FirebaseService.isInitialized` - checks if ready
+
+**Behavior**:
+- If `enableFirebaseSync = false`: App works 100% offline with local storage
+- If `enableFirebaseSync = true`: Requires `google-services.json` (Android) or `GoogleService-Info.plist` (iOS)
+- Missing config files are handled gracefully - app continues without Firebase
+
+**Usage Pattern**:
+```dart
+if (FirebaseService.isConfigured && FirebaseService.isInitialized) {
+  // Use cloud storage
+  await FirestoreTodoService.addTask(task);
+} else {
+  // Use local storage (always works)
+  await TodoService.addTask(task);
+}
+```
+
+### API Configuration System
+
+The app uses a three-tier configuration system:
+
+**Priority Order** (highest to lowest):
+1. **ApiConfigService** - Runtime keys stored in secure storage (future settings screen)
+2. **app_config.local.dart** - Development keys (git-ignored, created manually)
+3. **AppConfig** - Placeholder keys (never commit real keys here)
+
+**ConfigLoader** provides unified access:
+```dart
+final key = ConfigLoader.geminiApiKey;
+if (ConfigLoader.hasValidGeminiKey) {
+  // Initialize AI features
+}
+```
+
+**Validation**:
+- Called on app startup via `ConfigLoader.validateConfiguration()`
+- Uses Logger to report configuration status
+- App continues even with invalid keys (features gracefully disabled)
 
 ### Prayer Time System
 
@@ -279,9 +392,10 @@ AppTheme.space16  // 16.0
 AppTheme.space24  // 24.0
 
 // Radius
-AppTheme.radiusSmall   // 4.0
-AppTheme.radiusMedium  // 8.0
+AppTheme.radiusSmall   // 8.0
+AppTheme.radiusMedium  // 12.0
 AppTheme.radiusLarge   // 16.0
+AppTheme.radiusXLarge  // 24.0
 ```
 
 ### Responsive Breakpoints
@@ -352,11 +466,24 @@ PrayerTimeService
 
 ### Build Failures
 - **Problem**: Android build fails
-- **Solution**: Ensure NDK 27.0.12077973 installed and Java 17 configured
+- **Solution**: Ensure NDK 27.0.12077973 installed and Java 11 configured (JDK 11)
 
 ## 🚀 Key Patterns to Remember
 
-### 1. Always Check Connectivity
+### 1. Always Use Logger (NEVER use print())
+```dart
+// ✅ CORRECT
+Logger.info('Task created successfully', tag: 'TodoService');
+Logger.error('Failed to load data', error: e, stackTrace: stack, tag: 'Service');
+Logger.debug('Processing ${tasks.length} tasks', tag: 'TodoService');
+Logger.warning('API key not configured', tag: 'Config');
+Logger.success('Data synced successfully', tag: 'Sync');
+
+// ❌ WRONG - NEVER DO THIS
+print('Task created'); // DO NOT USE print()
+```
+
+### 2. Always Check Connectivity
 ```dart
 if (await ConnectivityHelper.hasInternetConnection()) {
   // Make API call
@@ -365,7 +492,7 @@ if (await ConnectivityHelper.hasInternetConnection()) {
 }
 ```
 
-### 2. Permission Before Feature
+### 3. Permission Before Feature
 ```dart
 if (await PermissionHelper.hasMicrophonePermission()) {
   // Start recording
@@ -374,7 +501,7 @@ if (await PermissionHelper.hasMicrophonePermission()) {
 }
 ```
 
-### 3. Prayer-Relative Time Parsing
+### 4. Prayer-Relative Time Parsing
 ```dart
 final absoluteTime = await PrayerTimeService.calculatePrayerRelativeTime(
   'dhuhr_before_15',
@@ -382,21 +509,36 @@ final absoluteTime = await PrayerTimeService.calculatePrayerRelativeTime(
 );
 ```
 
-### 4. Space Reference in Tasks
+### 5. Space Reference in Tasks
 ```dart
 task.description = "${task.title} #${spaceId}";
 ```
 
-### 5. Error Handling Pattern
+### 6. Error Handling Pattern
 ```dart
 try {
   // Operation
-} catch (e) {
+  Logger.debug('Starting operation', tag: 'Service');
+} catch (e, stackTrace) {
+  Logger.error('Operation failed', error: e, stackTrace: stackTrace, tag: 'Service');
+
   if (mounted) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Error: $e')),
     );
   }
+}
+```
+
+### 7. Firebase Configuration Check
+```dart
+// Firebase is optional - app works without it
+if (FirebaseService.isConfigured && FirebaseService.isInitialized) {
+  // Use Firebase features
+  await FirestoreTodoService.addTask(task);
+} else {
+  // Use local storage only
+  await TodoService.addTask(task);
 }
 ```
 
@@ -410,8 +552,9 @@ try {
 - pickAudioFile()
 ```
 
-### Channel Name
-`com.example.prayer_time_manager/audio_recorder`
+### Channel Names
+- **Audio Recorder**: `com.awkati.taskflow/audio_recorder`
+- **File Picker**: `com.awkati.taskflow/file_picker`
 
 ## 🔐 Security Considerations
 
@@ -438,23 +581,32 @@ try {
 ## 📝 Quick Reference
 
 ### Must Remember
+- ✅ Use `Logger` for ALL logging (NEVER use print())
 - ✅ Use `PermissionHelper` for ALL permissions
 - ✅ Use `AppTheme` for ALL styling
 - ✅ Check connectivity before API calls
 - ✅ Parse prayer-relative times properly
 - ✅ Add `#spaceId` tags for space integration
+- ✅ Handle errors gracefully with Logger.error()
+- ✅ Check Firebase configuration before using cloud features
+- ❌ Never use print() statements
 - ❌ Never access permission_handler directly
 - ❌ Never hardcode colors/dimensions
 - ❌ Never skip error handling
 
 ### Service Quick Access
-- Tasks: `TodoService`
-- Spaces: `SpaceService`
-- Prayer Times: `PrayerTimeService`
-- AI Chat: `EnhancedAIAssistant`
-- Activities: `ActivityService`
-- Permissions: `PermissionHelper`
-- Storage: `StorageHelper`
-- Network: `ConnectivityHelper`
+- **Logging**: `Logger` (logger.dart)
+- **Tasks**: `TodoService` + `FirestoreTodoService` (cloud)
+- **Spaces**: `SpaceService` + `FirestoreSpaceService` (cloud)
+- **Prayer Times**: `PrayerTimeService`
+- **AI Chat**: `EnhancedAIAssistant`
+- **Activities**: `ActivityService`
+- **Permissions**: `PermissionHelper`
+- **Storage**: `StorageHelper`
+- **Network**: `ConnectivityHelper`
+- **Firebase**: `FirebaseService` (optional)
+- **Sync**: `DataSyncService` (optional)
+- **Notifications**: `NotificationService`
+- **Config**: `ConfigLoader` + `ApiConfigService`
 
 This document represents the COMPLETE memory of the TaskFlow Pro project. Every important detail, pattern, and consideration is documented here.

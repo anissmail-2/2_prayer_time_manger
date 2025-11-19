@@ -14,6 +14,7 @@ import '../core/services/ai_conversation_service.dart';
 import '../core/config/config_loader.dart';
 import '../core/theme/app_theme.dart';
 import '../core/helpers/permission_helper.dart';
+import '../core/helpers/logger.dart';
 import '../models/task.dart';
 import '../models/space.dart';
 import '../models/chat_message.dart';
@@ -437,7 +438,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         }
       } catch (e) {
         // If native method fails, fall back to file_picker package
-        print('Native file picker failed: $e');
+        Logger.debug('Native file picker failed, falling back to file_picker', error: e, tag: 'AIAssistant');
       }
     }
     

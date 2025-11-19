@@ -5,6 +5,7 @@ import '../core/services/todo_service.dart';
 import '../core/services/prayer_time_service.dart';
 import '../core/services/user_preferences_service.dart';
 import '../core/theme/app_theme.dart';
+import '../core/helpers/logger.dart';
 import '../widgets/scheduling_section.dart';
 
 class AddEditItemScreen extends StatefulWidget {
@@ -281,17 +282,17 @@ class _AddEditItemScreenState extends State<AddEditItemScreen> with SingleTicker
       );
       
       if (widget.task != null) {
-        print('Updating task...');
+        Logger.debug('Updating task...', tag: 'AddEditItem');
         await TodoService.updateTask(task);
       } else {
-        print('Adding new task...');
+        Logger.debug('Adding new task...', tag: 'AddEditItem');
         await TodoService.addTask(task);
       }
-      
-      print('Task saved successfully, navigating back...');
+
+      Logger.success('Task saved successfully, navigating back...', tag: 'AddEditItem');
       Navigator.pop(context, true);
     } catch (e) {
-      print('Error saving task: $e');
+      Logger.error('Error saving task', error: e, tag: 'AddEditItem');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error saving item: $e')),
       );

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/space.dart';
 import 'auth_service.dart';
 import 'space_service.dart';
+import '../helpers/logger.dart';
 
 /// Firestore-backed implementation of SpaceService
 class FirestoreSpaceService {
@@ -40,7 +41,7 @@ class FirestoreSpaceService {
       
       return spaces;
     } catch (e) {
-      print('Error getting spaces from Firestore: $e');
+      Logger.error('Error getting spaces from Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
@@ -56,7 +57,7 @@ class FirestoreSpaceService {
       await _spacesCollection!.doc(space.id).set(space.toJson());
       return space;
     } catch (e) {
-      print('Error creating space in Firestore: $e');
+      Logger.error('Error creating space in Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
@@ -70,7 +71,7 @@ class FirestoreSpaceService {
     try {
       await _spacesCollection!.doc(space.id).set(space.toJson());
     } catch (e) {
-      print('Error updating space in Firestore: $e');
+      Logger.error('Error updating space in Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
@@ -84,7 +85,7 @@ class FirestoreSpaceService {
     try {
       await _spacesCollection!.doc(id).delete();
     } catch (e) {
-      print('Error deleting space from Firestore: $e');
+      Logger.error('Error deleting space from Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
@@ -131,12 +132,12 @@ class FirestoreSpaceService {
       
       if (migratedCount > 0) {
         await batch.commit();
-        print('Migrated $migratedCount spaces to Firestore');
+        Logger.info('Migrated $migratedCount spaces to Firestore', tag: 'Firestore');
       }
-      
+
       await prefs.setBool(_migrationKey, true);
     } catch (e) {
-      print('Error migrating spaces to Firestore: $e');
+      Logger.error('Error migrating spaces to Firestore', error: e, tag: 'Firestore');
     }
   }
   
@@ -184,7 +185,7 @@ class FirestoreSpaceService {
         }
       }
     } catch (e) {
-      print('Error syncing spaces: $e');
+      Logger.error('Error syncing spaces', error: e, tag: 'Firestore');
     }
   }
 }

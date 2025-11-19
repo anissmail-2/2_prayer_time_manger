@@ -6,6 +6,7 @@ import '../../models/task.dart';
 import 'todo_service.dart';
 import 'auth_service.dart';
 import 'firestore_space_service.dart';
+import '../helpers/logger.dart';
 
 class SpaceService {
   static const String _spacesKey = 'spaces';
@@ -18,7 +19,7 @@ class SpaceService {
       try {
         return await FirestoreSpaceService.getAllSpaces();
       } catch (e) {
-        print('Error getting spaces from Firestore: $e');
+        Logger.error('Error getting spaces from Firestore', error: e, tag: 'SpaceService');
         return [];
       }
     }

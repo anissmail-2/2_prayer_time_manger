@@ -5,7 +5,8 @@ import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io' show Platform;
-import '../../firebase_options.dart';
+import '../helpers/logger.dart';
+import '../config/app_config.dart';
 
 /// Service for managing Firebase initialization and instances
 class FirebaseService {
@@ -14,7 +15,7 @@ class FirebaseService {
   static FirebaseAnalytics? _analytics;
   static FirebaseCrashlytics? _crashlytics;
   static bool _isInitialized = false;
-  
+
   /// Check if Firebase is supported on this platform
   static bool get isSupported {
     try {
@@ -23,56 +24,62 @@ class FirebaseService {
       return false;
     }
   }
-  
+
+  /// Check if Firebase is configured (has necessary configuration files)
+  static bool get isConfigured => AppConfig.enableFirebaseSync;
+
+  /// Check if Firebase is initialized and ready to use
+  static bool get isInitialized => _isInitialized;
+
   /// Initialize Firebase services
   static Future<void> initialize() async {
-    // Skip Firebase initialization on unsupported platforms
-    if (!isSupported) {
-      if (kDebugMode) {
-        print('ℹ️ Firebase is not supported on this platform');
-      }
+    // Skip if Firebase is disabled
+    if (!isConfigured) {
+      Logger.info('Firebase sync is disabled in configuration', tag: 'Firebase');
       return;
     }
-    
+
+    // Skip Firebase initialization on unsupported platforms
+    if (!isSupported) {
+      Logger.info('Firebase is not supported on this platform', tag: 'Firebase');
+      return;
+    }
+
     try {
-      // Initialize Firebase with platform-specific options
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
-      
+      // Initialize Firebase with default options
+      // Note: This requires google-services.json (Android) or GoogleService-Info.plist (iOS)
+      await Firebase.initializeApp();
+
       // Initialize services
       _auth = FirebaseAuth.instance;
       _firestore = FirebaseFirestore.instance;
       _analytics = FirebaseAnalytics.instance;
       _crashlytics = FirebaseCrashlytics.instance;
-      
+
       // Configure Crashlytics
       if (!kDebugMode) {
         // Enable crash collection in release mode
         await _crashlytics!.setCrashlyticsCollectionEnabled(true);
-        
+
         // Pass all uncaught errors to Crashlytics
         FlutterError.onError = _crashlytics!.recordFlutterError;
       }
-      
+
       // Set Firestore settings for offline support
       _firestore!.settings = const Settings(
         persistenceEnabled: true,
         cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
       );
-      
+
       _isInitialized = true;
-      if (kDebugMode) {
-        print('✅ Firebase initialized successfully');
-      }
+      Logger.success('Firebase initialized successfully', tag: 'Firebase');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Error initializing Firebase: $e');
-      }
-      // Don't rethrow on unsupported platforms
-      if (isSupported) {
-        rethrow;
-      }
+      Logger.warning(
+        'Firebase initialization failed - app will work with local storage only',
+        tag: 'Firebase',
+      );
+      Logger.debug('Firebase error details: $e', tag: 'Firebase');
+      // Don't rethrow - app should work without Firebase
     }
   }
   

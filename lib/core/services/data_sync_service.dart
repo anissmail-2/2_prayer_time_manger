@@ -4,7 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'auth_service.dart';
 import 'firestore_todo_service.dart';
 import 'firestore_space_service.dart';
+import 'firebase_service.dart';
 import '../helpers/connectivity_helper.dart';
+import '../helpers/logger.dart';
 
 /// Service to handle data synchronization between local storage and Firestore
 class DataSyncService {
@@ -14,9 +16,15 @@ class DataSyncService {
   /// Initialize data sync service
   static Future<void> initialize() async {
     if (_isInitialized) return;
-    
+
+    // Skip if Firebase is not configured
+    if (!FirebaseService.isConfigured) {
+      Logger.info('Data sync disabled - Firebase not configured', tag: 'DataSync');
+      return;
+    }
+
     _isInitialized = true;
-    
+
     // Listen to auth state changes
     AuthService.authStateChanges.listen((user) async {
       if (user != null) {
@@ -24,7 +32,7 @@ class DataSyncService {
         await _onUserSignedIn();
       }
     });
-    
+
     // Listen to connectivity changes
     Connectivity().onConnectivityChanged.listen((result) async {
       if (result != ConnectivityResult.none && AuthService.isLoggedIn) {
@@ -32,59 +40,61 @@ class DataSyncService {
         await syncAllData();
       }
     });
+
+    Logger.info('Data sync service initialized', tag: 'DataSync');
   }
-  
+
   /// Called when user signs in
   static Future<void> _onUserSignedIn() async {
-    print('User signed in - using Firestore directly');
+    Logger.info('User signed in - using Firestore directly', tag: 'DataSync');
     // No need to sync since we're using Firestore directly when logged in
   }
   
   /// Migrate all local data to Firestore
   static Future<void> migrateAllDataToFirestore() async {
     if (!AuthService.isLoggedIn) return;
-    
+
     try {
-      print('Starting data migration to Firestore...');
-      
+      Logger.info('Starting data migration to Firestore...', tag: 'DataSync');
+
       // Migrate in parallel
       await Future.wait([
         FirestoreTodoService.migrateLocalDataToFirestore(),
         FirestoreSpaceService.migrateLocalDataToFirestore(),
         // Add more services as needed
       ]);
-      
-      print('Data migration completed');
+
+      Logger.success('Data migration completed', tag: 'DataSync');
     } catch (e) {
-      print('Error during data migration: $e');
+      Logger.error('Error during data migration', error: e, tag: 'DataSync');
     }
   }
   
   /// Sync all data between local and Firestore
   static Future<void> syncAllData() async {
     if (!AuthService.isLoggedIn || _isSyncing) return;
-    
+
     // Check connectivity
     if (!await ConnectivityHelper.hasInternetConnection()) {
-      print('No internet connection, skipping sync');
+      Logger.debug('No internet connection, skipping sync', tag: 'DataSync');
       return;
     }
-    
+
     _isSyncing = true;
-    
+
     try {
-      print('Starting data sync...');
-      
+      Logger.info('Starting data sync...', tag: 'DataSync');
+
       // Sync in parallel
       await Future.wait([
         FirestoreTodoService.syncLocalChangesToFirestore(),
         FirestoreSpaceService.syncLocalChangesToFirestore(),
         // Add more services as needed
       ]);
-      
-      print('Data sync completed');
+
+      Logger.success('Data sync completed', tag: 'DataSync');
     } catch (e) {
-      print('Error during data sync: $e');
+      Logger.error('Error during data sync', error: e, tag: 'DataSync');
     } finally {
       _isSyncing = false;
     }
@@ -99,7 +109,7 @@ class DataSyncService {
   /// Force refresh all data from Firestore
   static Future<void> refreshFromCloud() async {
     if (!AuthService.isLoggedIn) return;
-    
+
     try {
       // Get fresh data from Firestore
       await Future.wait([
@@ -107,13 +117,13 @@ class DataSyncService {
         FirestoreSpaceService.getAllSpaces(),
       ]);
     } catch (e) {
-      print('Error refreshing from cloud: $e');
+      Logger.error('Error refreshing from cloud', error: e, tag: 'DataSync');
     }
   }
-  
+
   /// Manual sync for testing
   static Future<Map<String, dynamic>> manualSync() async {
-    print('Manual sync started...');
+    Logger.info('Manual sync started...', tag: 'DataSync');
     final results = <String, dynamic>{
       'success': false,
       'message': '',
@@ -139,9 +149,9 @@ class DataSyncService {
       results['localTaskCount'] = localTaskCount;
       
       // Try to sync to Firestore
-      print('Attempting to sync to Firestore...');
+      Logger.info('Attempting to sync to Firestore...', tag: 'DataSync');
       await migrateAllDataToFirestore();
-      
+
       // Try to get Firestore task count
       try {
         final firestoreTasks = await FirestoreTodoService.getAllTasks();
@@ -149,15 +159,15 @@ class DataSyncService {
       } catch (e) {
         results['errors'].add('Firestore read error: $e');
       }
-      
+
       results['success'] = true;
       results['message'] = 'Sync completed';
     } catch (e) {
       results['errors'].add('Sync error: $e');
       results['message'] = 'Sync failed: $e';
     }
-    
-    print('Manual sync results: $results');
+
+    Logger.info('Manual sync results: $results', tag: 'DataSync');
     return results;
   }
   
@@ -184,10 +194,10 @@ class DataSyncService {
         final spacesJson = json.encode(spaces.map((space) => space.toJson()).toList());
         await prefs.setString('spaces', spacesJson);
       }
-      
-      print('Loaded ${tasks.length} tasks and ${spaces.length} spaces from Firestore');
+
+      Logger.info('Loaded ${tasks.length} tasks and ${spaces.length} spaces from Firestore', tag: 'DataSync');
     } catch (e) {
-      print('Error loading Firestore data to local: $e');
+      Logger.error('Error loading Firestore data to local', error: e, tag: 'DataSync');
     }
   }
 }

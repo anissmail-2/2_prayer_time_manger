@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../../models/location_settings.dart' as app_models;
 import '../helpers/permission_helper.dart';
+import '../helpers/logger.dart';
 
 class LocationService {
   static const String _locationSettingsKey = 'location_settings';
@@ -61,7 +62,7 @@ class LocationService {
       
       return position;
     } catch (e) {
-      print('Error getting location: $e');
+      Logger.error('Error getting location', error: e, tag: 'Location');
       return null;
     }
   }
@@ -100,9 +101,9 @@ class LocationService {
         }
       }
     } catch (e) {
-      print('Error getting city from coordinates: $e');
+      Logger.error('Error getting city from coordinates', error: e, tag: 'Location');
     }
-    
+
     return null;
   }
   
@@ -157,7 +158,7 @@ class LocationService {
         return 'UTC$offset';
       }
     } catch (e) {
-      print('Error getting timezone: $e');
+      Logger.error('Error getting timezone', error: e, tag: 'Location');
       return null;
     }
   }

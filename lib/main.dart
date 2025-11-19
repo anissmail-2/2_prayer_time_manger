@@ -1,48 +1,113 @@
+import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'widgets/auth_wrapper.dart';
 import 'core/theme/app_theme.dart';
+import 'core/config/config_loader.dart';
 import 'core/services/api_config_service.dart';
 import 'core/services/firebase_service.dart';
 import 'core/services/data_sync_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/theme_service.dart';
+import 'core/helpers/logger.dart';
 
 void main() async {
+  // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize API configuration
-  await ApiConfigService.initialize();
-  
-  // Initialize Firebase
-  await FirebaseService.initialize();
-  
-  // Initialize data sync service
-  await DataSyncService.initialize();
 
-  // Initialize notification service
-  await NotificationService.initialize();
+  // Set up global error handlers
+  _setupErrorHandlers();
 
-  // Schedule daily prayer notifications
-  await NotificationService.schedulePrayerNotifications();
+  // Run app initialization
+  await _initializeApp();
 
-  // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
-
+  // Launch app
   runApp(const TaskFlowPro());
+}
+
+/// Set up global error handlers for uncaught exceptions
+void _setupErrorHandlers() {
+  // Catch Flutter framework errors
+  FlutterError.onError = (FlutterErrorDetails details) {
+    Logger.error(
+      'Flutter error: ${details.exception}',
+      error: details.exception,
+      stackTrace: details.stack,
+      tag: 'App',
+    );
+
+    // In debug mode, show red screen
+    if (kDebugMode) {
+      FlutterError.presentError(details);
+    }
+  };
+
+  // Catch errors outside of Flutter framework
+  PlatformDispatcher.instance.onError = (error, stack) {
+    Logger.error(
+      'Platform error: $error',
+      error: error,
+      stackTrace: stack,
+      tag: 'App',
+    );
+    return true; // Handled
+  };
+}
+
+/// Initialize all app services
+Future<void> _initializeApp() async {
+  try {
+    Logger.divider();
+    Logger.info('TaskFlow Pro starting...', tag: 'App');
+    Logger.divider();
+
+    // Validate configuration
+    ConfigLoader.validateConfiguration();
+
+    // Initialize API configuration (optional .env loading)
+    await ApiConfigService.initialize();
+
+    // Initialize Firebase (gracefully handles missing config)
+    await FirebaseService.initialize();
+
+    // Initialize data sync service (disabled if Firebase not configured)
+    await DataSyncService.initialize();
+
+    // Initialize notification service
+    await NotificationService.initialize();
+
+    // Schedule daily prayer notifications
+    await NotificationService.schedulePrayerNotifications();
+
+    // Set preferred orientations
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
+
+    // Set system UI overlay style
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+
+    Logger.divider();
+    Logger.success('TaskFlow Pro initialized successfully', tag: 'App');
+    Logger.divider();
+  } catch (e, stackTrace) {
+    Logger.error(
+      'Failed to initialize app',
+      error: e,
+      stackTrace: stackTrace,
+      tag: 'App',
+    );
+    // Don't rethrow - let app start even if some services fail
+  }
 }
 
 class TaskFlowPro extends StatefulWidget {

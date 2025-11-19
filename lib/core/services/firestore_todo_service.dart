@@ -4,6 +4,7 @@ import '../../models/task.dart';
 import 'auth_service.dart';
 import 'todo_service.dart';
 import 'gemini_task_assistant.dart';
+import '../helpers/logger.dart';
 
 /// Firestore-backed implementation of TodoService
 /// Falls back to local storage when offline or not authenticated
@@ -43,37 +44,35 @@ class FirestoreTodoService {
       
       return tasks;
     } catch (e) {
-      print('Error getting tasks from Firestore: $e');
+      Logger.error('Error getting tasks from Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
   
   /// Add a new task
   static Future<void> addTask(Task task) async {
-    print('FirestoreTodoService.addTask called');
-    print('_useFirestore: $_useFirestore');
-    print('AuthService.isLoggedIn: ${AuthService.isLoggedIn}');
-    print('AuthService.userId: ${AuthService.userId}');
-    print('_tasksCollection: $_tasksCollection');
-    
+    Logger.debug('addTask called', tag: 'Firestore');
+    Logger.debug('_useFirestore: $_useFirestore', tag: 'Firestore');
+    Logger.debug('AuthService.isLoggedIn: ${AuthService.isLoggedIn}', tag: 'Firestore');
+    Logger.debug('AuthService.userId: ${AuthService.userId}', tag: 'Firestore');
+    Logger.debug('_tasksCollection: $_tasksCollection', tag: 'Firestore');
+
     if (!_useFirestore) {
-      print('FirestoreTodoService.addTask - Not using Firestore (not authenticated or no collection)');
+      Logger.warning('Not using Firestore (not authenticated or no collection)', tag: 'Firestore');
       throw Exception('User not authenticated');
     }
-    
-    print('FirestoreTodoService.addTask - User: ${AuthService.userId}');
-    print('FirestoreTodoService.addTask - Collection path: users/${AuthService.userId}/tasks');
-    
+
+    Logger.debug('User: ${AuthService.userId}', tag: 'Firestore');
+    Logger.debug('Collection path: users/${AuthService.userId}/tasks', tag: 'Firestore');
+
     try {
       // Add to Firestore only
-      print('FirestoreTodoService.addTask - Adding task with ID: ${task.id}');
-      print('Task data: ${task.toJson()}');
+      Logger.debug('Adding task with ID: ${task.id}', tag: 'Firestore');
+      Logger.debug('Task data: ${task.toJson()}', tag: 'Firestore');
       await _tasksCollection!.doc(task.id).set(task.toJson());
-      print('FirestoreTodoService.addTask - Task added successfully to Firestore');
+      Logger.success('Task added successfully to Firestore', tag: 'Firestore');
     } catch (e, stackTrace) {
-      print('Error adding task to Firestore: $e');
-      print('Error type: ${e.runtimeType}');
-      print('Stack trace: $stackTrace');
+      Logger.error('Error adding task to Firestore', error: e, stackTrace: stackTrace, tag: 'Firestore');
       rethrow;
     }
   }
@@ -88,7 +87,7 @@ class FirestoreTodoService {
       // Update in Firestore only
       await _tasksCollection!.doc(updatedTask.id).set(updatedTask.toJson());
     } catch (e) {
-      print('Error updating task in Firestore: $e');
+      Logger.error('Error updating task in Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
@@ -103,7 +102,7 @@ class FirestoreTodoService {
       // Delete from Firestore only
       await _tasksCollection!.doc(taskId).delete();
     } catch (e) {
-      print('Error deleting task from Firestore: $e');
+      Logger.error('Error deleting task from Firestore', error: e, tag: 'Firestore');
       rethrow;
     }
   }
@@ -220,13 +219,13 @@ class FirestoreTodoService {
       
       if (migratedCount > 0) {
         await batch.commit();
-        print('Migrated $migratedCount tasks to Firestore');
+        Logger.info('Migrated $migratedCount tasks to Firestore', tag: 'Firestore');
       }
-      
+
       // Mark as migrated
       await prefs.setBool(_migrationKey, true);
     } catch (e) {
-      print('Error migrating tasks to Firestore: $e');
+      Logger.error('Error migrating tasks to Firestore', error: e, tag: 'Firestore');
     }
   }
   
@@ -288,7 +287,7 @@ class FirestoreTodoService {
         }
       }
     } catch (e) {
-      print('Error syncing tasks: $e');
+      Logger.error('Error syncing tasks', error: e, tag: 'Firestore');
     }
   }
   

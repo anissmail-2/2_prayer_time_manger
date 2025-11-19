@@ -1,6 +1,7 @@
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import '../services/firebase_service.dart';
+import 'logger.dart';
 
 /// Helper for logging analytics events
 class AnalyticsHelper {
@@ -20,13 +21,9 @@ class AnalyticsHelper {
         name: name,
         parameters: parameters,
       );
-      if (kDebugMode) {
-        print('📊 Analytics: $name ${parameters != null ? parameters.toString() : ''}');
-      }
+      Logger.debug('Analytics: $name ${parameters != null ? parameters.toString() : ''}', tag: 'Analytics');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Analytics error: $e');
-      }
+      Logger.error('Analytics error', error: e, tag: 'Analytics');
     }
   }
 
@@ -87,13 +84,9 @@ class AnalyticsHelper {
 
     try {
       await _analytics!.logScreenView(screenName: screenName);
-      if (kDebugMode) {
-        print('📊 Screen View: $screenName');
-      }
+      Logger.debug('Screen View: $screenName', tag: 'Analytics');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Screen view error: $e');
-      }
+      Logger.error('Screen view error', error: e, tag: 'Analytics');
     }
   }
 

@@ -5,6 +5,7 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import '../helpers/storage_helper.dart';
 import '../helpers/analytics_helper.dart';
+import '../helpers/logger.dart';
 import 'prayer_time_service.dart';
 import '../../models/task.dart';
 import '../../models/enhanced_task.dart';
@@ -53,16 +54,12 @@ class NotificationService {
 
       _initialized = true;
 
-      if (kDebugMode) {
-        print('✅ Notification service initialized');
-      }
+      Logger.success('Notification service initialized', tag: 'Notification');
 
       // Request permissions
       await requestPermissions();
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to initialize notifications: $e');
-      }
+      Logger.error('Failed to initialize notifications', error: e, tag: 'Notification');
     }
   }
 
@@ -101,18 +98,14 @@ class NotificationService {
 
       return true;
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to request notification permissions: $e');
-      }
+      Logger.error('Failed to request notification permissions', error: e, tag: 'Notification');
       return false;
     }
   }
 
   /// Handle notification tap
   static void _onNotificationTapped(NotificationResponse response) {
-    if (kDebugMode) {
-      print('📲 Notification tapped: ${response.payload}');
-    }
+    Logger.debug('Notification tapped: ${response.payload}', tag: 'Notification');
 
     // Analytics
     AnalyticsHelper.logEvent(
@@ -161,15 +154,11 @@ class NotificationService {
         }
       }
 
-      if (kDebugMode) {
-        print('✅ Prayer notifications scheduled');
-      }
+      Logger.success('Prayer notifications scheduled', tag: 'Notification');
 
       await AnalyticsHelper.logEvent(name: 'prayer_notifications_scheduled');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to schedule prayer notifications: $e');
-      }
+      Logger.error('Failed to schedule prayer notifications', error: e, tag: 'Notification');
     }
   }
 
@@ -195,18 +184,14 @@ class NotificationService {
         payload: 'task_${task.id}',
       );
 
-      if (kDebugMode) {
-        print('✅ Task reminder scheduled for ${task.title}');
-      }
+      Logger.success('Task reminder scheduled for ${task.title}', tag: 'Notification');
 
       await AnalyticsHelper.logEvent(
         name: 'task_notification_scheduled',
         parameters: {'task_id': task.id},
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to schedule task reminder: $e');
-      }
+      Logger.error('Failed to schedule task reminder', error: e, tag: 'Notification');
     }
   }
 
@@ -215,9 +200,7 @@ class NotificationService {
     try {
       await _notifications.cancel(_getTaskNotificationId(taskId));
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to cancel task reminder: $e');
-      }
+      Logger.error('Failed to cancel task reminder', error: e, tag: 'Notification');
     }
   }
 
@@ -229,9 +212,7 @@ class NotificationService {
         await _notifications.cancel(_getPrayerNotificationId(prayer));
       }
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to cancel prayer notifications: $e');
-      }
+      Logger.error('Failed to cancel prayer notifications', error: e, tag: 'Notification');
     }
   }
 
@@ -239,13 +220,9 @@ class NotificationService {
   static Future<void> cancelAllNotifications() async {
     try {
       await _notifications.cancelAll();
-      if (kDebugMode) {
-        print('✅ All notifications canceled');
-      }
+      Logger.success('All notifications canceled', tag: 'Notification');
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to cancel all notifications: $e');
-      }
+      Logger.error('Failed to cancel all notifications', error: e, tag: 'Notification');
     }
   }
 
@@ -282,9 +259,7 @@ class NotificationService {
         details,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to show notification: $e');
-      }
+      Logger.error('Failed to show notification', error: e, tag: 'Notification');
     }
   }
 
@@ -327,9 +302,7 @@ class NotificationService {
         payload: payload,
       );
     } catch (e) {
-      if (kDebugMode) {
-        print('❌ Failed to schedule notification: $e');
-      }
+      Logger.error('Failed to schedule notification', error: e, tag: 'Notification');
     }
   }
 

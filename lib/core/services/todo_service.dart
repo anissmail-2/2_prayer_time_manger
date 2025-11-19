@@ -4,6 +4,7 @@ import '../../models/task.dart';
 import 'gemini_task_assistant.dart';
 import 'auth_service.dart';
 import 'firestore_todo_service.dart';
+import '../helpers/logger.dart';
 
 class TodoService {
   static const String _tasksKey = 'tasks';
@@ -15,7 +16,7 @@ class TodoService {
       try {
         return await FirestoreTodoService.getAllTasks();
       } catch (e) {
-        print('Error getting tasks from Firestore: $e');
+        Logger.error('Error getting tasks from Firestore', error: e, tag: 'TodoService');
         return [];
       }
     }

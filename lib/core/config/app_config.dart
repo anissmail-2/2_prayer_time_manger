@@ -1,15 +1,22 @@
 /// App Configuration
-/// 
+///
 /// IMPORTANT: Never commit real API keys to version control!
-/// 
+///
+/// Configuration Priority (highest to lowest):
+/// 1. Runtime config via ApiConfigService (stored in secure storage)
+/// 2. app_config.local.dart (for development, git-ignored)
+/// 3. This file (placeholder keys only)
+///
 /// For development:
 /// 1. Copy this file to app_config.local.dart
 /// 2. Add real keys to the local file
-/// 3. Add app_config.local.dart to .gitignore
-/// 
+/// 3. Local file is already in .gitignore
+///
 /// For production:
 /// Use environment variables or secure key management service
 library;
+
+import '../helpers/logger.dart';
 
 class AppConfig {
   // Company domain - change this to your actual domain when ready for Play Store
@@ -44,11 +51,34 @@ class AppConfig {
       deepgramApiKey.isNotEmpty;
   
   static void validateConfiguration() {
+    Logger.divider();
+    Logger.info('Validating configuration...', tag: 'Config');
+
+    // API Keys
+    Logger.config('Gemini API Key', hasValidGeminiKey);
     if (!hasValidGeminiKey) {
-      print('⚠️ WARNING: Gemini API key not configured. AI features will not work.');
+      Logger.warning(
+        'Gemini API key not configured - AI features will not work',
+        tag: 'Config',
+      );
+      Logger.info(
+        'Please create lib/core/config/app_config.local.dart with your API key',
+        tag: 'Config',
+      );
     }
+
+    Logger.config('Deepgram API Key', hasValidDeepgramKey);
     if (!hasValidDeepgramKey && enableVoiceInput) {
-      print('⚠️ WARNING: Deepgram API key not configured. Voice input will not work.');
+      Logger.warning(
+        'Deepgram API key not configured - Voice input will not work',
+        tag: 'Config',
+      );
     }
+
+    // Feature Flags
+    Logger.config('Voice Input', enableVoiceInput);
+    Logger.config('Firebase Sync', enableFirebaseSync);
+
+    Logger.divider();
   }
 }

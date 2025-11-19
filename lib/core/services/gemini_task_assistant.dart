@@ -6,6 +6,7 @@ import 'prayer_time_service.dart';
 import 'prayer_duration_service.dart';
 import 'todo_service.dart';
 import '../config/config_loader.dart';
+import '../helpers/logger.dart';
 
 class GeminiTaskAssistant {
   static String get _apiKey => ConfigLoader.geminiApiKey;
@@ -17,7 +18,7 @@ class GeminiTaskAssistant {
     try {
       // Check if API key is available
       if (!ConfigLoader.hasValidGeminiKey) {
-        print('Gemini API key not configured');
+        Logger.warning('Gemini API key not configured', tag: 'GeminiAssistant');
         return [];
       }
       

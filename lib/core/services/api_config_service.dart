@@ -1,8 +1,22 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'secure_storage_wrapper.dart';
+import '../helpers/logger.dart';
 
 /// Service for managing API keys and sensitive configuration
-/// This centralizes all API key access and provides secure storage
+///
+/// This service provides runtime API key management with secure storage.
+/// It's used for:
+/// 1. Loading API keys from .env files
+/// 2. Migrating keys to secure storage
+/// 3. Allowing runtime key updates (future settings screen)
+///
+/// Configuration Priority:
+/// 1. Secure storage (runtime updates)
+/// 2. .env file (loaded once at startup)
+/// 3. ConfigLoader/AppConfig (compile-time fallback)
+///
+/// Note: Currently .env loading is optional. The app will work with
+/// ConfigLoader if .env file is not present.
 class ApiConfigService {
   
   // Storage keys
@@ -20,14 +34,15 @@ class ApiConfigService {
   /// Must be called on app startup
   static Future<void> initialize() async {
     try {
-      // Load environment variables
+      // Try to load environment variables (optional)
       await dotenv.load(fileName: ".env");
-      
+      Logger.info('Loaded .env file', tag: 'ApiConfig');
+
       // Load or migrate API keys
       await _loadOrMigrateKeys();
     } catch (e) {
-      print('Error initializing API config: $e');
-      // App should handle this gracefully
+      Logger.debug('No .env file found - will use ConfigLoader', tag: 'ApiConfig');
+      // App works without .env file - ConfigLoader provides fallback
     }
   }
   
