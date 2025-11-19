@@ -11,11 +11,14 @@ class WelcomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: SizedBox(
+              height: MediaQuery.of(context).size.height - MediaQuery.of(context).padding.top - MediaQuery.of(context).padding.bottom - 48,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
               const Spacer(),
 
               // Animated app logo
@@ -36,7 +39,7 @@ class WelcomeScreen extends StatelessWidget {
                       child: Icon(
                         Icons.task_alt,
                         size: 60,
-                        color: AppTheme.primary.withOpacity(value),
+                        color: AppTheme.primary.withOpacity(value.clamp(0.0, 1.0)),
                       ),
                     ),
                   );
@@ -124,7 +127,9 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 24),
-            ],
+                ],
+              ),
+            ),
           ),
         ),
       ),
