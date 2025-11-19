@@ -136,7 +136,7 @@ class LocationPermissionScreen extends StatelessWidget {
       if (hasPermission) {
         // Try to detect and save location
         try {
-          await LocationService.detectAndSaveLocation();
+          await LocationService.updateLocationAutomatically();
           Logger.success(
             'Location obtained and saved',
             tag: 'LocationPermission',
