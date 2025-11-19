@@ -1,5 +1,4 @@
 import 'package:flutter/foundation.dart';
-import 'analytics_helper.dart';
 
 /// Professional logging system for TaskFlow Pro
 ///
@@ -43,14 +42,6 @@ class Logger {
   static void warning(String message, {String? tag}) {
     final formattedMessage = _formatMessage(_warning, message, tag);
     debugPrint(formattedMessage);
-
-    // Log warnings to analytics in production
-    if (!kDebugMode) {
-      AnalyticsHelper.logEvent('app_warning', parameters: {
-        'message': message,
-        'tag': tag ?? 'unknown',
-      });
-    }
   }
 
   /// Error log - critical issues
@@ -71,13 +62,8 @@ class Logger {
       debugPrint('Stack trace:\n$stackTrace');
     }
 
-    // Log errors to analytics/crashlytics
-    AnalyticsHelper.logError(
-      message,
-      error: error,
-      stackTrace: stackTrace,
-      fatal: false,
-    );
+    // Note: Errors are logged to Firebase Crashlytics via the global error
+    // handlers in main.dart, so we don't duplicate that here
   }
 
   /// Success log - successful operations
