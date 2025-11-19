@@ -123,7 +123,7 @@ class _SubscriptionManagementScreenState
       ),
     );
 
-    AnalyticsHelper.logEvent('subscription_initiated', parameters: {'plan': planId});
+    AnalyticsHelper.logEvent(name: 'subscription_initiated', parameters: {'plan': planId});
   }
 
   Widget _buildCurrentPlanCard() {

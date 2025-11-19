@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../helpers/logger.dart';
 import '../helpers/storage_helper.dart';
 import 'todo_service.dart';
@@ -19,9 +19,9 @@ class DataExportService {
       Logger.info('Starting data export', tag: 'DataExport');
 
       // Get all data
-      final tasks = await TodoService.getTasks();
-      final spaces = await SpaceService.getSpaces();
-      final activities = await ActivityService.getActivities();
+      final tasks = await TodoService.getAllTasks();
+      final spaces = await SpaceService.getAllSpaces();
+      final activities = await ActivityService.getAllActivities();
 
       // Get settings
       final isPrayerModeEnabled =
@@ -71,15 +71,21 @@ class DataExportService {
     }
   }
 
-  /// Save export data to file and share
-  static Future<void> exportToFile() async {
+  /// Save export data to file and return path
+  static Future<String> exportToFile() async {
     try {
       final exportData = await exportAllData();
       final jsonString = const JsonEncoder.withIndent('  ').convert(exportData);
 
-      // Get temporary directory
-      final directory = await getTemporaryDirectory();
-      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-');
+      // Get downloads directory (or temp if downloads not available)
+      Directory directory;
+      try {
+        directory = await getDownloadsDirectory() ?? await getTemporaryDirectory();
+      } catch (e) {
+        directory = await getTemporaryDirectory();
+      }
+
+      final timestamp = DateTime.now().toIso8601String().replaceAll(':', '-').replaceAll('.', '-');
       final filePath = '${directory.path}/taskflow_backup_$timestamp.json';
 
       // Write to file
@@ -88,12 +94,7 @@ class DataExportService {
 
       Logger.success('Export file created: $filePath', tag: 'DataExport');
 
-      // Share the file
-      await Share.shareXFiles(
-        [XFile(filePath)],
-        subject: 'TaskFlow Pro Data Export',
-        text: 'Your TaskFlow Pro data backup',
-      );
+      return filePath;
     } catch (e, stackTrace) {
       Logger.error(
         'Failed to export to file',
@@ -168,15 +169,24 @@ class DataExportService {
       if (importData.containsKey('activities')) {
         try {
           final activitiesList = importData['activities'] as List<dynamic>;
+          final existingActivities = await ActivityService.getAllActivities();
+
           for (final activityJson in activitiesList) {
             try {
               final activity = Activity.fromJson(activityJson as Map<String, dynamic>);
-              await ActivityService.addActivity(activity);
+              // Check if activity already exists
+              final exists = existingActivities.any((a) => a.id == activity.id);
+              if (!exists) {
+                existingActivities.add(activity);
+              }
               activitiesImported++;
             } catch (e) {
               errors.add('Failed to import activity: $e');
             }
           }
+
+          // Save all activities
+          await _saveActivitiesDirectly(existingActivities);
         } catch (e) {
           errors.add('Failed to import activities: $e');
         }
@@ -257,6 +267,15 @@ class DataExportService {
       );
       rethrow;
     }
+  }
+
+  /// Helper method to save activities directly
+  static Future<void> _saveActivitiesDirectly(List<Activity> activities) async {
+    final prefs = await SharedPreferences.getInstance();
+    final activitiesJson = activities
+        .map((activity) => jsonEncode(activity.toJson()))
+        .toList();
+    await prefs.setStringList('activities', activitiesJson);
   }
 }
 

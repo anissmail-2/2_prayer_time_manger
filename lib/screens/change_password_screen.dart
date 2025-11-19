@@ -66,7 +66,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       );
 
       Logger.success('Password changed successfully', tag: 'ChangePassword');
-      AnalyticsHelper.logEvent('password_changed');
+      AnalyticsHelper.logEvent(name: 'password_changed');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -73,7 +73,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
     });
 
     Logger.info('Language preference saved: $languageCode', tag: 'LanguageSettings');
-    AnalyticsHelper.logEvent('language_changed', parameters: {'language': languageCode});
+    AnalyticsHelper.logEvent(name: 'language_changed', parameters: {'language': languageCode});
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -147,7 +147,7 @@ class _LanguageSettingsScreenState extends State<LanguageSettingsScreen> {
           const SizedBox(height: 12),
 
           // Language List
-          ...languages.map((language) {
+          ..._languages.map((language) {
             final isSelected = _selectedLanguage == language.code;
             return Container(
               margin: const EdgeInsets.only(bottom: 12),

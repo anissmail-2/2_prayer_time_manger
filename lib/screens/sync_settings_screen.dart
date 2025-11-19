@@ -108,7 +108,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
         );
       }
 
-      AnalyticsHelper.logEvent('manual_sync_completed');
+      AnalyticsHelper.logEvent(name: 'manual_sync_completed');
     } catch (e, stackTrace) {
       Logger.error(
         'Failed to sync data',
@@ -118,7 +118,7 @@ class _SyncSettingsScreenState extends State<SyncSettingsScreen> {
       );
 
       setState(() {
-        _isSyncing = false,
+        _isSyncing = false;
       });
 
       if (mounted) {

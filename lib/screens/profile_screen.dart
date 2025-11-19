@@ -28,17 +28,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _handleExportData() async {
     try {
-      await DataExportService.exportToFile();
+      final filePath = await DataExportService.exportToFile();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Data exported successfully!'),
+          SnackBar(
+            content: Text('Data exported to:\n${filePath.split('/').last}'),
             backgroundColor: AppTheme.success,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
-      AnalyticsHelper.logEvent('data_exported');
+      AnalyticsHelper.logEvent(name: 'data_exported');
     } catch (e, stackTrace) {
       Logger.error(
         'Failed to export data',
@@ -161,7 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         );
 
-        AnalyticsHelper.logEvent('data_imported');
+        AnalyticsHelper.logEvent(name: 'data_imported');
       }
     } catch (e, stackTrace) {
       Logger.error(
@@ -583,7 +584,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       Logger.success('Account and all data deleted', tag: 'Profile');
-      AnalyticsHelper.logEvent('account_deleted');
+      AnalyticsHelper.logEvent(name: 'account_deleted');
 
       if (mounted) {
         // Close loading dialog

@@ -119,7 +119,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
       case 'task':
         return AppTheme.primary;
       case 'prayer':
-        return AppTheme.prayerColors['fajr'] ?? AppTheme.primary;
+        return const Color(0xFF4CAF50); // Green for prayer
       case 'reminder':
         return AppTheme.warning;
       case 'sync':

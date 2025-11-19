@@ -183,7 +183,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         Logger.success('Profile photo removed', tag: 'EditProfile');
       }
 
-      AnalyticsHelper.logEvent('profile_updated');
+      AnalyticsHelper.logEvent(name: 'profile_updated');
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

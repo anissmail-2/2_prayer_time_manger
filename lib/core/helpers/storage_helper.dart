@@ -88,4 +88,58 @@ class StorageHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(key, value);
   }
+
+  /// Get list value
+  static Future<List<dynamic>?> getList(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(key);
+    if (value == null) return null;
+    return json.decode(value) as List<dynamic>;
+  }
+
+  /// Save list value
+  static Future<void> saveList(String key, List<dynamic> value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, json.encode(value));
+  }
+
+  /// Get map value
+  static Future<Map<String, dynamic>?> getMap(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(key);
+    if (value == null) return null;
+    return json.decode(value) as Map<String, dynamic>;
+  }
+
+  /// Save map value
+  static Future<void> saveMap(String key, Map<String, dynamic> value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(key, json.encode(value));
+  }
+
+  /// Get boolean value
+  static Future<bool?> getBool(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(key);
+  }
+
+  /// Save boolean value
+  static Future<void> saveBool(String key, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(key, value);
+  }
+
+  /// Remove a key
+  static Future<void> remove(String key) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(key);
+  }
+
+  /// Get location settings (from legacy model)
+  static Future<dynamic> getLocationSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString('location_settings');
+    if (value == null) return null;
+    return json.decode(value);
+  }
 }
