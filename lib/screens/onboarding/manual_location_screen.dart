@@ -214,9 +214,9 @@ class _ManualLocationScreenState extends State<ManualLocationScreen> {
     try {
       // Save location settings
       final locationSettings = LocationSettings(
-        city: city,
-        country: country,
-        useAutoLocation: false,
+        customCity: city,
+        customCountry: country,
+        useGPS: false,
       );
 
       await LocationService.saveLocationSettings(locationSettings);

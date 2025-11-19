@@ -28,6 +28,13 @@ class AppThemeExtensions {
     end: Alignment.bottomRight,
   );
 
+  /// Error gradient (Red shades)
+  static const LinearGradient errorGradient = LinearGradient(
+    colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   /// Soft gradient background
   static const LinearGradient softBackgroundGradient = LinearGradient(
     colors: [Color(0xFFF8FAFC), Color(0xFFFFFFFF)],
@@ -131,10 +138,9 @@ class AppThemeExtensions {
       boxShadow: isPressed
           ? [
               BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-                inset: true,
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 5,
+                offset: const Offset(0, 1),
               ),
             ]
           : [

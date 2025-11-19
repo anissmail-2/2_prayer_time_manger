@@ -369,7 +369,7 @@ class TrendingStatCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding: const EdgeInsets.all(AppTheme.space10),
+                padding: const EdgeInsets.all(AppTheme.space12),
                 decoration: AppThemeExtensions.softIconBackground(
                   color: color ?? AppTheme.primary,
                   radius: AppTheme.radiusMedium,
