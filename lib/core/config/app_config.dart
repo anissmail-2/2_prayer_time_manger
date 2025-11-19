@@ -36,7 +36,7 @@ class AppConfig {
   
   // Feature Flags
   static const bool enableVoiceInput = true;
-  static const bool enableFirebaseSync = false; // Disabled until fully implemented
+  static const bool enableFirebaseSync = true; // Enable Firebase for authentication and cloud sync
   
   // API Endpoints
   static const String prayerTimeApiBase = 'https://api.aladhan.com/v1';
