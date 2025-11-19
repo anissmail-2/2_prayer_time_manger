@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../services/analytics_helper.dart';
+import 'analytics_helper.dart';
 
 /// Professional logging system for TaskFlow Pro
 ///

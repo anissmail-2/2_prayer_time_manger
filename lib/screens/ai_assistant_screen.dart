@@ -438,7 +438,7 @@ class _AIAssistantScreenState extends State<AIAssistantScreen> {
         }
       } catch (e) {
         // If native method fails, fall back to file_picker package
-        Logger.debug('Native file picker failed, falling back to file_picker', error: e, tag: 'AIAssistant');
+        Logger.warning('Native file picker failed, falling back to file_picker package', tag: 'AIAssistant');
       }
     }
     
