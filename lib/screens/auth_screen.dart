@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core/services/auth_service.dart';
+import '../core/services/firebase_service.dart';
+import '../core/helpers/logger.dart';
 import '../core/theme/app_theme.dart';
+import 'main_layout.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -32,6 +35,8 @@ class _AuthScreenState extends State<AuthScreen> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    Logger.info('Attempting ${_isLogin ? 'sign in' : 'sign up'} with email', tag: 'Auth');
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -52,10 +57,18 @@ class _AuthScreenState extends State<AuthScreen> {
         );
       }
 
-      if (user != null && mounted) {
+      // Check if authentication failed silently
+      if (user == null && mounted) {
+        Logger.warning('Authentication returned null - Firebase is disabled', tag: 'Auth');
+        setState(() {
+          _errorMessage = 'Firebase authentication is disabled. Please click "Skip Sign In" to use the app in offline mode.';
+        });
+      } else if (user != null && mounted) {
+        Logger.success('User authenticated successfully', tag: 'Auth');
         // Navigate to main app - will be handled by auth state listener
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      Logger.error('Authentication failed', error: e, stackTrace: stackTrace, tag: 'Auth');
       if (mounted) {
         setState(() {
           _errorMessage = e.toString();
@@ -71,6 +84,8 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _handleGoogleSignIn() async {
+    Logger.info('Attempting Google sign-in', tag: 'Auth');
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -78,10 +93,19 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       final user = await AuthService.signInWithGoogle();
-      if (user != null && mounted) {
+
+      // Check if sign-in was cancelled or failed silently
+      if (user == null && mounted) {
+        Logger.warning('Google sign-in returned null - Firebase is disabled or user cancelled', tag: 'Auth');
+        setState(() {
+          _errorMessage = 'Google sign-in is unavailable. Firebase is disabled. Please click "Skip Sign In" below to use the app offline.';
+        });
+      } else if (user != null && mounted) {
+        Logger.success('Google sign-in successful', tag: 'Auth');
         // Navigate to main app - will be handled by auth state listener
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      Logger.error('Google sign-in failed', error: e, stackTrace: stackTrace, tag: 'Auth');
       if (mounted) {
         setState(() {
           _errorMessage = e.toString();
@@ -415,6 +439,61 @@ class _AuthScreenState extends State<AuthScreen> {
                               ),
                             ],
                           ),
+
+                          // Skip sign-in option (offline mode)
+                          if (!FirebaseService.isConfigured || !FirebaseService.isInitialized) ...[
+                            SizedBox(height: AppTheme.space8),
+                            Container(
+                              padding: EdgeInsets.all(AppTheme.space12),
+                              decoration: BoxDecoration(
+                                color: AppTheme.info.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                                border: Border.all(
+                                  color: AppTheme.info.withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
+                                        color: AppTheme.info,
+                                        size: 16,
+                                      ),
+                                      SizedBox(width: AppTheme.space8),
+                                      Expanded(
+                                        child: Text(
+                                          'Authentication is offline. You can use the app without signing in.',
+                                          style: AppTheme.bodySmall.copyWith(
+                                            color: AppTheme.info,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: AppTheme.space8),
+                                  TextButton.icon(
+                                    onPressed: _isLoading
+                                        ? null
+                                        : () {
+                                            Logger.info('User skipped sign-in - using offline mode', tag: 'Auth');
+                                            Navigator.of(context).pushReplacement(
+                                              MaterialPageRoute(
+                                                builder: (context) => const MainLayout(),
+                                              ),
+                                            );
+                                          },
+                                    icon: const Icon(Icons.arrow_forward, size: 18),
+                                    label: const Text('Skip Sign In (Offline Mode)'),
+                                    style: TextButton.styleFrom(
+                                      foregroundColor: AppTheme.info,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
