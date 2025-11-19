@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../core/helpers/logger.dart';
 import '../core/helpers/analytics_helper.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/app_theme_extensions.dart';
 import '../core/helpers/storage_helper.dart';
+import '../widgets/animated_card.dart';
+import '../widgets/empty_state.dart';
 
 class NotificationsCenterScreen extends StatefulWidget {
   const NotificationsCenterScreen({super.key});
@@ -199,33 +202,23 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ShimmerCard(height: 80, width: MediaQuery.of(context).size.width - 32),
+                  const SizedBox(height: 12),
+                  ShimmerCard(height: 80, width: MediaQuery.of(context).size.width - 32),
+                  const SizedBox(height: 12),
+                  ShimmerCard(height: 80, width: MediaQuery.of(context).size.width - 32),
+                ],
+              ),
+            )
           : _notifications.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.notifications_none,
-                        size: 64,
-                        color: AppTheme.textSecondary.withOpacity(0.3),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No notifications yet',
-                        style: AppTheme.bodyLarge.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Your notifications will appear here',
-                        style: AppTheme.bodySmall.copyWith(
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
+              ? EmptyState(
+                  icon: Icons.notifications_none,
+                  title: 'No notifications yet',
+                  message: 'Your notifications will appear here when you receive them',
                 )
               : ListView.builder(
                   padding: const EdgeInsets.all(16),
@@ -238,7 +231,7 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                       background: Container(
                         margin: const EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: AppTheme.error,
+                          gradient: AppThemeExtensions.errorGradient,
                           borderRadius:
                               BorderRadius.circular(AppTheme.radiusMedium),
                         ),
@@ -247,40 +240,69 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                         child: const Icon(
                           Icons.delete,
                           color: Colors.white,
+                          size: 28,
                         ),
                       ),
                       onDismissed: (direction) {
                         _deleteNotification(notification.id);
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Notification deleted'),
-                            duration: Duration(seconds: 2),
+                          SnackBar(
+                            content: const Text('Notification deleted'),
+                            duration: const Duration(seconds: 2),
+                            backgroundColor: AppTheme.success,
                           ),
                         );
                       },
-                      child: Container(
+                      child: AnimatedCard(
                         margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: notification.isRead
-                              ? Colors.white
-                              : AppTheme.primary.withOpacity(0.05),
-                          borderRadius:
-                              BorderRadius.circular(AppTheme.radiusMedium),
-                          border: Border.all(
-                            color: notification.isRead
-                                ? AppTheme.borderLight
-                                : AppTheme.primary.withOpacity(0.2),
-                          ),
-                        ),
+                        gradient: !notification.isRead
+                            ? LinearGradient(
+                                colors: [
+                                  AppTheme.primary.withOpacity(0.05),
+                                  AppTheme.primary.withOpacity(0.02),
+                                ],
+                              )
+                            : null,
+                        onTap: () {
+                          // Mark as read
+                          if (!notification.isRead) {
+                            setState(() {
+                              notification.isRead = true;
+                            });
+                            StorageHelper.saveList(
+                              'notification_history',
+                              _notifications.map((n) => n.toJson()).toList(),
+                            );
+                          }
+                          // Handle notification tap (navigate to relevant screen)
+                          // TODO: Implement navigation based on notification type/payload
+                        },
                         child: ListTile(
                           contentPadding: const EdgeInsets.all(16),
-                          leading: CircleAvatar(
-                            backgroundColor:
-                                _getColorForType(notification.type)
-                                    .withOpacity(0.1),
+                          leading: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  _getColorForType(notification.type),
+                                  _getColorForType(notification.type).withOpacity(0.7),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _getColorForType(notification.type).withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
                             child: Icon(
                               _getIconForType(notification.type),
-                              color: _getColorForType(notification.type),
+                              color: Colors.white,
                             ),
                           ),
                           title: Text(
@@ -301,32 +323,39 @@ class _NotificationsCenterScreenState extends State<NotificationsCenterScreen> {
                                   style: AppTheme.bodyMedium.copyWith(
                                     color: AppTheme.textSecondary,
                                   ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                               const SizedBox(height: 8),
-                              Text(
-                                _getTimeAgo(notification.timestamp),
-                                style: AppTheme.labelSmall.copyWith(
-                                  color: AppTheme.textSecondary,
-                                ),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.access_time,
+                                    size: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    _getTimeAgo(notification.timestamp),
+                                    style: AppTheme.labelSmall.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          onTap: () {
-                            // Mark as read
-                            if (!notification.isRead) {
-                              setState(() {
-                                notification.isRead = true;
-                              });
-                              StorageHelper.saveList(
-                                'notification_history',
-                                _notifications.map((n) => n.toJson()).toList(),
-                              );
-                            }
-
-                            // Handle notification tap (navigate to relevant screen)
-                            // TODO: Implement navigation based on notification type/payload
-                          },
+                          trailing: !notification.isRead
+                              ? Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary,
+                                    shape: BoxShape.circle,
+                                  ),
+                                )
+                              : null,
                         ),
                       ),
                     );

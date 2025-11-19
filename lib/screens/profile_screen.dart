@@ -6,6 +6,8 @@ import '../core/services/data_export_service.dart';
 import '../core/helpers/analytics_helper.dart';
 import '../core/helpers/logger.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/app_theme_extensions.dart';
+import '../widgets/animated_card.dart';
 import 'notification_settings_screen.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
@@ -244,32 +246,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // Profile Header
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-              border: Border.all(color: AppTheme.borderLight),
-            ),
+          // Profile Header with Gradient
+          GradientCard(
+            gradient: AppThemeExtensions.primaryGradient,
             child: Column(
               children: [
-                // Avatar
-                CircleAvatar(
-                  radius: 48,
-                  backgroundColor: AppTheme.primary.withOpacity(0.1),
-                  child: user != null && user.photoURL != null
-                      ? ClipOval(
-                          child: Image.network(
-                            user.photoURL!,
-                            width: 96,
-                            height: 96,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildDefaultAvatar(),
-                          ),
-                        )
-                      : _buildDefaultAvatar(),
+                // Avatar with gradient border
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: AppThemeExtensions.successGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primary.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: CircleAvatar(
+                    radius: 48,
+                    backgroundColor: Colors.white,
+                    child: user != null && user.photoURL != null
+                        ? ClipOval(
+                            child: Image.network(
+                              user.photoURL!,
+                              width: 92,
+                              height: 92,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  _buildDefaultAvatar(),
+                            ),
+                          )
+                        : _buildDefaultAvatar(),
+                  ),
                 ),
                 const SizedBox(height: 16),
                 // Name
@@ -277,6 +288,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   user?.displayName ?? 'User',
                   style: AppTheme.headlineMedium.copyWith(
                     fontWeight: FontWeight.bold,
+                    color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -284,28 +296,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Text(
                   user?.email ?? 'Not signed in',
                   style: AppTheme.bodyMedium.copyWith(
-                    color: AppTheme.textSecondary,
+                    color: Colors.white.withOpacity(0.9),
                   ),
                 ),
                 const SizedBox(height: 16),
-                // Account status
+                // Account status badge
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 16,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: user != null
-                        ? AppTheme.success.withOpacity(0.1)
-                        : AppTheme.warning.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                  ),
-                  child: Text(
-                    user != null ? 'Signed In' : 'Offline Mode',
-                    style: AppTheme.labelSmall.copyWith(
-                      color: user != null ? AppTheme.success : AppTheme.warning,
-                      fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.3),
+                      width: 1,
                     ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        user != null ? Icons.check_circle : Icons.offline_bolt,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        user != null ? 'Signed In' : 'Offline Mode',
+                        style: AppTheme.labelMedium.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -500,25 +525,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     VoidCallback? onTap,
     Color? textColor,
   }) {
-    return Container(
+    final isError = textColor == AppTheme.error;
+    return AnimatedCard(
       margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        border: Border.all(color: AppTheme.borderLight),
-      ),
+      onTap: onTap,
       child: ListTile(
         leading: Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: (textColor ?? AppTheme.primary).withOpacity(0.1),
-            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+            gradient: isError
+                ? AppThemeExtensions.errorGradient
+                : LinearGradient(
+                    colors: [
+                      (textColor ?? AppTheme.primary),
+                      (textColor ?? AppTheme.primary).withOpacity(0.7),
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            boxShadow: [
+              BoxShadow(
+                color: (textColor ?? AppTheme.primary).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Icon(
             icon,
-            color: textColor ?? AppTheme.primary,
-            size: 20,
+            color: Colors.white,
+            size: 22,
           ),
         ),
         title: Text(
@@ -535,12 +573,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
         trailing: onTap != null
-            ? Icon(
-                Icons.chevron_right,
-                color: textColor ?? AppTheme.textSecondary,
+            ? Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: (textColor ?? AppTheme.primary).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.chevron_right,
+                  color: textColor ?? AppTheme.primary,
+                  size: 18,
+                ),
               )
             : null,
-        onTap: onTap,
       ),
     );
   }

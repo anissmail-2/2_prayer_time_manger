@@ -5,8 +5,13 @@ import '../core/services/prayer_time_service.dart';
 import '../core/services/user_preferences_service.dart';
 import '../core/helpers/analytics_helper.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/app_theme_extensions.dart';
 import '../models/task.dart';
 import '../widgets/task_details_dialog.dart';
+import '../widgets/animated_card.dart';
+import '../widgets/stat_card.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/modern_dashboard_header.dart';
 import 'add_edit_item_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -156,23 +161,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundLight,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? _buildLoadingState()
           : RefreshIndicator(
               onRefresh: _loadData,
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(AppTheme.space24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildWelcomeSection(),
-                    const SizedBox(height: AppTheme.space24),
-                    _buildStatsCards(),
-                    if (_isPrayerModeEnabled) ...[
-                      const SizedBox(height: AppTheme.space24),
-                      _buildNextPrayerCard(),
-                    ],
-                    const SizedBox(height: AppTheme.space24),
-                    _buildTodayTasksSection(),
+                    // Modern Header with gradient and prayer time
+                    if (_isPrayerModeEnabled)
+                      ModernDashboardHeader(
+                        userName: 'User',
+                        greeting: _getGreeting(),
+                        nextPrayer: _nextPrayer,
+                        timeToNextPrayer: _timeToNextPrayer != null
+                            ? _formatTimeRemaining(_timeToNextPrayer!)
+                            : null,
+                      )
+                    else
+                      _buildSimpleHeader(),
+
+                    // Content
+                    Padding(
+                      padding: const EdgeInsets.all(AppTheme.space24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildStatsCards(),
+                          const SizedBox(height: AppTheme.space24),
+                          _buildTodayTasksSection(),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -195,208 +215,140 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildWelcomeSection() {
-    final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Good Morning!';
-    } else if (hour < 17) {
-      greeting = 'Good Afternoon!';
-    } else {
-      greeting = 'Good Evening!';
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          greeting,
-          style: AppTheme.headlineLarge.copyWith(
-            color: AppTheme.textPrimary,
+  Widget _buildLoadingState() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Shimmer for header
+          const ShimmerCard(height: 200, width: double.infinity),
+          Padding(
+            padding: const EdgeInsets.all(AppTheme.space24),
+            child: Column(
+              children: [
+                // Shimmer for stats
+                Row(
+                  children: [
+                    Expanded(child: ShimmerCard(height: 120)),
+                    const SizedBox(width: AppTheme.space16),
+                    Expanded(child: ShimmerCard(height: 120)),
+                    const SizedBox(width: AppTheme.space16),
+                    Expanded(child: ShimmerCard(height: 120)),
+                  ],
+                ),
+                const SizedBox(height: AppTheme.space24),
+                // Shimmer for tasks
+                ShimmerCard(height: 80),
+                const SizedBox(height: AppTheme.space12),
+                ShimmerCard(height: 80),
+                const SizedBox(height: AppTheme.space12),
+                ShimmerCard(height: 80),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppTheme.space8),
-        Text(
-          DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
-          style: AppTheme.bodyLarge.copyWith(
-            color: AppTheme.textSecondary,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
+
+  Widget _buildSimpleHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: AppThemeExtensions.primaryGradient,
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(AppTheme.space24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _getGreeting(),
+                style: AppTheme.bodyLarge.copyWith(
+                  color: Colors.white.withOpacity(0.9),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(height: AppTheme.space8),
+              Text(
+                'User',
+                style: AppTheme.headlineLarge.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: AppTheme.space8),
+              Text(
+                DateFormat('EEEE, MMMM d, yyyy').format(DateTime.now()),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good Morning';
+    } else if (hour < 17) {
+      return 'Good Afternoon';
+    } else {
+      return 'Good Evening';
+    }
+  }
+
+  String _formatTimeRemaining(Duration duration) {
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes % 60;
+    if (hours > 0) {
+      return '$hours hr $minutes min';
+    } else {
+      return '$minutes min';
+    }
+  }
+
 
   Widget _buildStatsCards() {
     final completedToday = _todayTasks.where((t) => t.task.isCompletedForDate(DateTime.now())).length;
     final totalToday = _todayTasks.length;
     final pendingTasks = totalToday - completedToday;
+    final progress = totalToday > 0 ? completedToday / totalToday : 0.0;
 
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard(
+          child: TrendingStatCard(
+            icon: Icons.check_circle,
             title: 'Completed',
             value: completedToday.toString(),
-            subtitle: 'tasks today',
-            icon: Icons.check_circle_outline,
-            color: AppTheme.success,
+            trend: totalToday > 0 ? '${(progress * 100).toStringAsFixed(0)}%' : '0%',
+            isTrendingUp: progress >= 0.5,
+            gradient: AppThemeExtensions.successGradient,
           ),
         ),
         const SizedBox(width: AppTheme.space16),
         Expanded(
-          child: _buildStatCard(
-            title: 'Pending',
+          child: CompactStatCard(
+            icon: Icons.pending_actions,
+            label: 'Pending',
             value: pendingTasks.toString(),
-            subtitle: 'tasks remaining',
-            icon: Icons.pending_outlined,
-            color: AppTheme.warning,
+            iconColor: AppTheme.warning,
           ),
         ),
         const SizedBox(width: AppTheme.space16),
         Expanded(
-          child: _buildStatCard(
-            title: 'Total',
-            value: totalToday.toString(),
-            subtitle: 'tasks scheduled',
+          child: ProgressStatCard(
             icon: Icons.task_alt,
-            color: AppTheme.primary,
+            title: 'Daily Goal',
+            progress: progress,
+            valueText: '$completedToday of $totalToday',
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildStatCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.space20),
-      decoration: AppTheme.cardDecoration(
-        boxShadow: AppTheme.shadowSmall,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(AppTheme.space8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space12),
-          Text(
-            value,
-            style: AppTheme.headlineMedium.copyWith(
-              color: AppTheme.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: AppTheme.space4),
-          Text(
-            subtitle,
-            style: AppTheme.bodySmall.copyWith(
-              color: AppTheme.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNextPrayerCard() {
-    if (_nextPrayer == null || _timeToNextPrayer == null) {
-      return const SizedBox.shrink();
-    }
-
-    final hours = _timeToNextPrayer!.inHours;
-    final minutes = _timeToNextPrayer!.inMinutes % 60;
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(AppTheme.space24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primary,
-            AppTheme.primaryDark,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
-        boxShadow: AppTheme.shadowLarge,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(AppTheme.space12),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                ),
-                child: const Icon(
-                  Icons.access_time,
-                  color: Colors.white,
-                  size: 28,
-                ),
-              ),
-              const SizedBox(width: AppTheme.space16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Next Prayer',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
-                    const SizedBox(height: AppTheme.space4),
-                    Text(
-                      '$_nextPrayer at $_nextPrayerTime',
-                      style: AppTheme.headlineSmall.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppTheme.space20),
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppTheme.space16,
-              vertical: AppTheme.space8,
-            ),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
-            ),
-            child: Text(
-              hours > 0 ? '$hours hr $minutes min' : '$minutes minutes',
-              style: AppTheme.titleMedium.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -416,6 +368,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               'Today\'s Tasks',
               style: AppTheme.titleLarge.copyWith(
                 color: AppTheme.textPrimary,
+                fontWeight: FontWeight.bold,
               ),
             ),
             TextButton(
@@ -428,26 +381,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         const SizedBox(height: AppTheme.space16),
         if (upcomingTasks.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppTheme.space32),
-            decoration: AppTheme.cardDecoration(),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.task_alt,
-                  size: 48,
-                  color: AppTheme.textTertiary,
+          CompactEmptyState(
+            icon: Icons.task_alt,
+            message: 'No pending tasks for today',
+            actionLabel: 'Add Task',
+            onAction: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddEditItemScreen(prayerTimes: _prayerTimes),
                 ),
-                const SizedBox(height: AppTheme.space16),
-                Text(
-                  'No pending tasks',
-                  style: AppTheme.bodyLarge.copyWith(
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
+              );
+              if (result == true) {
+                await _loadData();
+              }
+            },
           )
         else
           ...upcomingTasks.map((taskWithTime) => _buildTaskCard(taskWithTime)),
@@ -458,89 +406,107 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildTaskCard(TaskWithTime taskWithTime) {
     final task = taskWithTime.task;
     final time = taskWithTime.scheduledTime;
-    
-    return Container(
+
+    return AnimatedCard(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
-      child: ListTile(
-        onTap: () {
-          showDialog(
-            context: context,
-            builder: (context) => TaskDetailsDialog(
-              task: task,
-              cachedPrayerTimes: _prayerTimes,
-              onEdit: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddEditItemScreen(
-                      task: task,
-                      prayerTimes: _prayerTimes,
-                    ),
+      onTap: () {
+        showDialog(
+          context: context,
+          builder: (context) => TaskDetailsDialog(
+            task: task,
+            cachedPrayerTimes: _prayerTimes,
+            onEdit: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => AddEditItemScreen(
+                    task: task,
+                    prayerTimes: _prayerTimes,
                   ),
-                );
-                if (result == true) {
-                  await _loadData();
-                }
-              },
-              onDelete: () async {
-                await TodoService.deleteTask(task.id);
+                ),
+              );
+              if (result == true) {
                 await _loadData();
-              },
-              onToggleComplete: () async {
-                await TodoService.toggleTaskStatus(task);
-                await _loadData();
-              },
-            ),
-          );
-        },
+              }
+            },
+            onDelete: () async {
+              await TodoService.deleteTask(task.id);
+              await _loadData();
+            },
+            onToggleComplete: () async {
+              await TodoService.toggleTaskStatus(task);
+              await _loadData();
+            },
+          ),
+        );
+      },
+      child: ListTile(
         contentPadding: const EdgeInsets.all(AppTheme.space16),
         leading: Container(
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: task.priority == TaskPriority.high
-                ? AppTheme.error.withOpacity(0.1)
+            gradient: task.priority == TaskPriority.high
+                ? AppThemeExtensions.errorGradient
                 : task.priority == TaskPriority.medium
-                    ? AppTheme.warning.withOpacity(0.1)
-                    : AppTheme.primary.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+                    ? AppThemeExtensions.warningGradient
+                    : AppThemeExtensions.primaryGradient,
+            borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+            boxShadow: [
+              BoxShadow(
+                color: _getPriorityColor(task.priority).withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Icon(
             Icons.task_alt,
-            color: task.priority == TaskPriority.high
-                ? AppTheme.error
-                : task.priority == TaskPriority.medium
-                    ? AppTheme.warning
-                    : AppTheme.primary,
+            color: Colors.white,
           ),
         ),
         title: Text(
           task.title,
           style: AppTheme.titleMedium.copyWith(
             color: AppTheme.textPrimary,
+            fontWeight: FontWeight.w600,
           ),
         ),
-        subtitle: Text(
-          DateFormat('h:mm a').format(time),
-          style: AppTheme.bodySmall.copyWith(
-            color: AppTheme.textSecondary,
-          ),
+        subtitle: Row(
+          children: [
+            Icon(
+              Icons.schedule,
+              size: 14,
+              color: AppTheme.textSecondary,
+            ),
+            const SizedBox(width: AppTheme.space4),
+            Text(
+              DateFormat('h:mm a').format(time),
+              style: AppTheme.bodySmall.copyWith(
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
         ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(
             horizontal: AppTheme.space12,
-            vertical: AppTheme.space4,
+            vertical: AppTheme.space6,
           ),
           decoration: BoxDecoration(
             color: _getPriorityColor(task.priority).withOpacity(0.1),
             borderRadius: BorderRadius.circular(AppTheme.radiusCircular),
+            border: Border.all(
+              color: _getPriorityColor(task.priority).withOpacity(0.3),
+              width: 1,
+            ),
           ),
           child: Text(
             task.priority.name.toUpperCase(),
             style: AppTheme.labelSmall.copyWith(
               color: _getPriorityColor(task.priority),
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
             ),
           ),
         ),
