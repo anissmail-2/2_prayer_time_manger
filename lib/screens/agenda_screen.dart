@@ -10,8 +10,11 @@ import '../core/services/prayer_time_service.dart';
 import '../core/services/space_service.dart';
 import '../core/services/task_filter_service.dart';
 import '../core/theme/app_theme.dart';
+import '../core/theme/app_theme_extensions.dart';
 import '../widgets/task_filter_dialog.dart';
 import '../widgets/task_details_dialog.dart';
+import '../widgets/animated_card.dart';
+import '../widgets/empty_state.dart';
 import 'add_edit_item_screen.dart';
 
 class AgendaScreen extends StatefulWidget {
@@ -318,7 +321,7 @@ class _AgendaScreenState extends State<AgendaScreen> {
             _buildErrorBanner(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? _buildLoadingState()
                 : RefreshIndicator(
                     onRefresh: _loadInitialData,
                     child: _buildTasksList(),
@@ -574,51 +577,58 @@ class _AgendaScreenState extends State<AgendaScreen> {
     }
   }
 
+  Widget _buildLoadingState() {
+    return ListView(
+      padding: const EdgeInsets.all(AppTheme.space16),
+      children: [
+        ShimmerCard(height: 90),
+        const SizedBox(height: AppTheme.space12),
+        ShimmerCard(height: 90),
+        const SizedBox(height: AppTheme.space12),
+        ShimmerCard(height: 90),
+        const SizedBox(height: AppTheme.space12),
+        ShimmerCard(height: 90),
+      ],
+    );
+  }
+
   Widget _buildTasksList() {
     if (_filteredTasks.isEmpty && !_isLoadingMore) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.event_note,
-              size: 64,
-              color: AppTheme.textTertiary,
-            ),
-            const SizedBox(height: AppTheme.space16),
-            Text(
-              'No items found',
-              style: AppTheme.titleLarge.copyWith(
-                color: AppTheme.textSecondary,
+      final message = _filterOptions.searchQuery.isNotEmpty
+          ? 'No tasks match your search'
+          : _filterOptions.hasActiveFilters
+              ? 'No tasks match your filters'
+              : 'No tasks yet';
+
+      final hint = _filterOptions.searchQuery.isNotEmpty
+          ? 'Try adjusting your search'
+          : _filterOptions.hasActiveFilters
+              ? 'Try adjusting your filters or clearing them'
+              : 'Create your first task to get started';
+
+      return EmptyState(
+        icon: Icons.event_note,
+        title: message,
+        message: hint,
+        actionLabel: _filterOptions.hasActiveFilters ? 'Clear Filters' : 'Add Task',
+        onAction: () {
+          if (_filterOptions.hasActiveFilters) {
+            setState(() {
+              _filterOptions = TaskFilterOptions();
+              _searchController.clear();
+            });
+            _loadData();
+          } else {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => AddEditItemScreen(prayerTimes: _prayerTimes),
               ),
-            ),
-            const SizedBox(height: AppTheme.space8),
-            Text(
-              _filterOptions.searchQuery.isNotEmpty
-                  ? 'Try adjusting your search'
-                  : _filterOptions.hasActiveFilters
-                      ? 'Try adjusting your filters'
-                      : 'Create your first item',
-              style: AppTheme.bodyLarge.copyWith(
-                color: AppTheme.textTertiary,
-              ),
-            ),
-            if (_filterOptions.hasActiveFilters) ...[
-              const SizedBox(height: AppTheme.space16),
-              TextButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _filterOptions = TaskFilterOptions();
-                    _searchController.clear();
-                  });
-                  _loadData();
-                },
-                icon: const Icon(Icons.clear),
-                label: const Text('Clear Filters'),
-              ),
-            ],
-          ],
-        ),
+            ).then((result) {
+              if (result == true) _loadData();
+            });
+          }
+        },
       );
     }
 
@@ -651,9 +661,16 @@ class _AgendaScreenState extends State<AgendaScreen> {
         ? _spaces.firstWhere((s) => s.id == spaceId, orElse: () => _spaces.first)
         : null;
     
-    return Container(
+    return AnimatedCard(
       margin: const EdgeInsets.only(bottom: AppTheme.space12),
-      decoration: AppTheme.cardDecoration(),
+      gradient: isCompleted
+          ? LinearGradient(
+              colors: [
+                AppTheme.success.withOpacity(0.05),
+                AppTheme.success.withOpacity(0.02),
+              ],
+            )
+          : null,
       child: Dismissible(
         key: Key(task.id),
         direction: DismissDirection.horizontal, // Allow both directions
@@ -662,13 +679,15 @@ class _AgendaScreenState extends State<AgendaScreen> {
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.only(left: AppTheme.space20),
           decoration: BoxDecoration(
-            color: isCompleted ? AppTheme.warning : AppTheme.success,
+            gradient: isCompleted
+                ? AppThemeExtensions.warningGradient
+                : AppThemeExtensions.successGradient,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           child: Icon(
             isCompleted ? Icons.restart_alt : Icons.check_circle_outline,
             color: Colors.white,
-            size: 28,
+            size: 32,
           ),
         ),
         // Secondary background for swipe left (delete)
@@ -676,13 +695,13 @@ class _AgendaScreenState extends State<AgendaScreen> {
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.only(right: AppTheme.space20),
           decoration: BoxDecoration(
-            color: AppTheme.error,
+            gradient: AppThemeExtensions.errorGradient,
             borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           ),
           child: const Icon(
             Icons.delete_outline,
             color: Colors.white,
-            size: 28,
+            size: 32,
           ),
         ),
         confirmDismiss: (direction) async {
