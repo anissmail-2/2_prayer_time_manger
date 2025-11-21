@@ -11,7 +11,6 @@ plugins {
 android {
     namespace = "com.awkati.taskflow"
     compileSdk = 36  // Updated to SDK 36 for plugin compatibility
-    buildToolsVersion = "34.0.0"  // Use Linux-compatible build tools
     ndkVersion = "27.0.12077973"
 
     compileOptions {
