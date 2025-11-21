@@ -32,7 +32,7 @@ class AppConfig {
   static const String deepgramApiKey = 'YOUR_DEEPGRAM_API_KEY_HERE';
   
   // Firebase Configuration (if needed)
-  static const String firebaseProjectId = 'task-flow-pro-ec2b8';
+  static const String firebaseProjectId = 'taskflow-pro-9df04';
   
   // Feature Flags
   static const bool enableVoiceInput = true;
