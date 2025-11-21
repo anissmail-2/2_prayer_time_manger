@@ -6,7 +6,7 @@ import 'firebase_service.dart';
 class AuthService {
   static FirebaseAuth? get _auth => FirebaseService.isSupported ? FirebaseService.authNullable : null;
   static FirebaseFirestore? get _firestore => FirebaseService.isSupported ? FirebaseService.firestoreNullable : null;
-  static final GoogleSignIn _googleSignIn = GoogleSignIn();
+  static final GoogleSignIn _googleSignIn = GoogleSignIn.standard();
 
   // Current user stream
   static Stream<User?> get authStateChanges => 
@@ -70,20 +70,20 @@ class AuthService {
   // Sign in with Google
   static Future<User?> signInWithGoogle() async {
     if (_auth == null) return null;
-    
+
     try {
       // Trigger the authentication flow
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently() ?? await _googleSignIn.signInInteractively();
 
       // Obtain the auth details from the request
-      final GoogleSignInAuthentication? googleAuth = 
+      final GoogleSignInAuthentication? googleAuth =
           await googleUser?.authentication;
 
       if (googleAuth == null) return null;
 
       // Create a new credential
       final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
+        accessToken: googleAuth.token,
         idToken: googleAuth.idToken,
       );
 
