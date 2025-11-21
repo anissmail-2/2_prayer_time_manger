@@ -44,18 +44,15 @@ android {
     }
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("androidx.activity:activity:1.9.3")
+        force("androidx.activity:activity-ktx:1.9.3")
+    }
+}
+
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
-
-    // Force compatible androidx.activity version for Gradle plugin 8.7.3
-    constraints {
-        implementation("androidx.activity:activity:1.9.3") {
-            because("Version 1.11.0+ requires Gradle plugin 8.9.1")
-        }
-        implementation("androidx.activity:activity-ktx:1.9.3") {
-            because("Version 1.11.0+ requires Gradle plugin 8.9.1")
-        }
-    }
 }
 
 flutter {
